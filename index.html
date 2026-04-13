@@ -657,6 +657,11 @@ function createPowTileEl(tile, isNew) {
   });
   el.appendChild(badge);
 
+  el.addEventListener('click', (e) => {
+    if (e.target === badge) return;
+    showTooltip(el, '⚡ まずは累乗から処理しよう（指数をクリック）');
+  });
+
   return el;
 }
 
