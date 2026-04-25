@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>移項マスター</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
+  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  min-height: 100vh;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px 60px;
+  overflow-x: hidden;
+}
+
+h1 {
+  font-size: clamp(1.6em, 5vw, 2.4em);
+  font-weight: 900;
+  text-align: center;
+  background: linear-gradient(90deg, #ffd700, #ff8c00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  text-align: center;
+  opacity: 0.7;
+  font-size: 0.9em;
+  margin-bottom: 24px;
+}
+
+/* Problem buttons */
+.prob-btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 22px;
+  max-width: 660px;
+}
+.pb {
+  padding: 7px 15px;
+  border-radius: 20px;
+  border: 2px solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.07);
+  color: #fff;
+  font-size: 0.82em;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.pb:hover { background: rgba(255,215,0,0.18); border-color: #ffd700; }
+.pb.active { background: #ffd700; color: #1a1a2e; border-color: #ffd700; font-weight: 700; }
+.pb-gen { border-color: rgba(26,188,156,0.6); }
+.pb-gen.active { background: #1abc9c; border-color: #1abc9c; color: #fff; }
+
+/* Generate button */
+.btn-gen {
+  background: linear-gradient(135deg, #1abc9c, #16a085);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(26,188,156,0.35);
+}
+.btn-gen:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(26,188,156,0.55); }
+.gen-wrap { margin-bottom: 14px; }
+
+/* Hint */
+.hint-box {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 12px;
+  padding: 12px 18px;
+  max-width: 620px;
+  width: 100%;
+  margin-bottom: 28px;
+  font-size: 0.9em;
+  line-height: 1.5;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.hint-icon { font-size: 1.2em; flex-shrink: 0; margin-top: 1px; }
+
+/* ── Equation area ── */
+.equation-wrap {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  width: 100%;
+  max-width: 700px;
+  margin-bottom: 26px;
+  gap: 0;
+}
+.eq-side {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 18px 14px;
+  min-height: 96px;
+  border: 2px dashed rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.04);
+  transition: border-color 0.2s, background 0.2s;
+}
+.eq-side#sideL { border-radius: 18px 0 0 18px; border-right: none; }
+.eq-side#sideR { border-radius: 0 18px 18px 0; border-left: none; }
+.eq-side.drop-ready { border-color: #ffd700; background: rgba(255,215,0,0.07); }
+
+.empty-hint {
+  font-size: 1.6em;
+  font-weight: 900;
+  color: rgba(255,255,255,0.25);
+  pointer-events: none;
+}
+
+/* Equals sign */
+.equals-sign {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.6em;
+  font-weight: 900;
+  color: rgba(255,255,255,0.9);
+  padding: 0 6px;
+  min-width: 54px;
+  border-top: 2px dashed rgba(255,255,255,0.2);
+  border-bottom: 2px dashed rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.04);
+  transition: color 0.18s, text-shadow 0.18s, transform 0.18s;
+  user-select: none;
+}
+.equals-sign.crossing {
+  color: #ff6b6b;
+  text-shadow: 0 0 22px rgba(255,107,107,0.8);
+  transform: scale(1.18);
+}
+
+/* ── Term cards ── */
+.term-card {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-size: 1.45em;
+  font-weight: 800;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  transition: transform 0.14s, box-shadow 0.14s, opacity 0.14s;
+  position: relative;
+}
+.term-card:active { cursor: grabbing; }
+
+/* ── 同辺内の挿入位置インジケーター（緑の縦線） ── */
+.term-card.insert-before::before,
+.term-card.insert-after::after {
+  content: '';
+  position: absolute;
+  top: -3px; bottom: -3px;
+  width: 3px;
+  background: #7bed9f;
+  border-radius: 3px;
+  box-shadow: 0 0 10px rgba(123,237,159,0.8);
+  pointer-events: none;
+}
+.term-card.insert-before::before { left:  -5px; }
+.term-card.insert-after::after   { right: -5px; }
+
+/* 同辺ホバー時のハイライト */
+.eq-side.reorder-ready {
+  border-color: #7bed9f;
+  background: rgba(123,237,159,0.06);
+}
+
+/* 符号が変わらない！ツールチップ（非表示） */
+.reorder-tooltip {
+  display: none;
+  position: fixed;
+  pointer-events: none;
+  z-index: 9998;
+  background: #7bed9f;
+  color: #1a1a2e;
+  font-weight: 800;
+  font-size: 0.88em;
+  padding: 7px 16px;
+  border-radius: 18px;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-50%);
+  transition: opacity 0.18s;
+  box-shadow: 0 4px 16px rgba(123,237,159,0.5);
+}
+.reorder-tooltip.show { opacity: 1; }
+.term-card:not(.ghost):hover {
+  transform: translateY(-4px) scale(1.06);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+}
+.var-term {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  box-shadow: 0 4px 16px rgba(102,126,234,0.4);
+  color: #fff;
+}
+.const-term {
+  background: linear-gradient(135deg, #f7971e, #ffd200);
+  box-shadow: 0 4px 16px rgba(247,151,30,0.35);
+  color: #1a1a2e;
+}
+.term-card.ghost {
+  opacity: 0.22;
+  pointer-events: none;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.card-sign { font-size: 0.82em; font-weight: 900; line-height: 1; }
+.var-term  .card-sign.pos { color: rgba(255,255,255,0.8); }
+.var-term  .card-sign.neg { color: #ffb3b3; }
+.const-term .card-sign.pos { color: rgba(26,26,46,0.7); }
+.const-term .card-sign.neg { color: rgba(160,40,40,0.9); }
+
+/* ── Inline fraction inside a card ── */
+.frac-inline {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: middle;
+  line-height: 1.15;
+  font-size: 0.62em;
+  margin: 0 1px;
+}
+.frac-inline .fn {
+  border-bottom: 2px solid currentColor;
+  padding: 0 3px;
+  min-width: 14px;
+  text-align: center;
+}
+.frac-inline .fd { padding: 0 3px; min-width: 14px; text-align: center; }
+
+/* Flip-in animation */
+@keyframes flipIn {
+  0%   { transform: scale(0.4) rotateY(90deg); opacity: 0.2; }
+  60%  { transform: scale(1.18) rotateY(-8deg); }
+  100% { transform: scale(1) rotateY(0); opacity: 1; }
+}
+.flip-anim { animation: flipIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* ── Floating card during drag ── */
+.floating-card {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  transform: scale(1.13) rotate(-4deg);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.55);
+  transition: box-shadow 0.18s;
+}
+.floating-card.will-flip {
+  transform: scale(1.13) rotate(4deg);
+  box-shadow: 0 18px 50px rgba(255,107,107,0.55);
+}
+
+/* Sign change tooltip */
+.sign-tooltip {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9998;
+  background: #ff6b6b;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.88em;
+  padding: 7px 16px;
+  border-radius: 18px;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-50%);
+  transition: opacity 0.18s;
+  box-shadow: 0 4px 16px rgba(255,107,107,0.5);
+}
+.sign-tooltip.show { opacity: 1; }
+
+/* ── Divide section ── */
+.div-section {
+  display: none;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 18px;
+  padding: 16px 24px;
+  background: rgba(130,80,220,0.15);
+  border: 2px solid rgba(180,120,255,0.4);
+  border-radius: 16px;
+  max-width: 560px;
+  width: 100%;
+  animation: fadeInUp 0.3s ease-out;
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.div-section.visible { display: flex; }
+.div-label {
+  font-size: 0.95em;
+  line-height: 1.5;
+  flex: 1;
+  min-width: 160px;
+}
+.div-label strong { color: #c9a0ff; font-size: 1.1em; }
+.div-preview {
+  font-family: 'Courier New', monospace;
+  font-size: 0.82em;
+  color: rgba(255,255,255,0.55);
+  text-align: center;
+}
+
+/* ── Action buttons ── */
+.action-btns {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 26px;
+}
+.btn {
+  padding: 11px 24px;
+  border-radius: 26px;
+  border: none;
+  font-size: 0.95em;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.btn-gold {
+  background: linear-gradient(135deg, #ffd700, #ff8c00);
+  color: #1a1a2e;
+  box-shadow: 0 4px 16px rgba(255,215,0,0.3);
+}
+.btn-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(255,215,0,0.5); }
+.btn-purple {
+  background: linear-gradient(135deg, #9b59b6, #6c3483);
+  color: #fff;
+  font-size: 1.05em;
+  box-shadow: 0 4px 16px rgba(155,89,182,0.4);
+}
+.btn-purple:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(155,89,182,0.6); }
+.btn-ghost {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  border: 2px solid rgba(255,255,255,0.22);
+}
+.btn-ghost:hover { background: rgba(255,255,255,0.18); }
+
+/* ── History ── */
+.history-box {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 16px 20px;
+  max-width: 620px;
+  width: 100%;
+}
+.history-title { font-size: 0.86em; font-weight: 700; color: #ffd700; margin-bottom: 10px; }
+.step {
+  font-family: 'Courier New', monospace;
+  font-size: 0.88em;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.48);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.step.current { color: #7bed9f; font-weight: 700; }
+.step:last-child { border-bottom: none; }
+.step-n {
+  font-size: 0.74em;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+  width: 20px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Toast ── */
+.notif {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-90px);
+  background: linear-gradient(135deg, #302b63, #24243e);
+  border: 2px solid #ffd700;
+  color: #fff;
+  padding: 12px 28px;
+  border-radius: 30px;
+  font-size: 0.95em;
+  font-weight: 700;
+  z-index: 8000;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  white-space: nowrap;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  max-width: 90vw;
+  text-align: center;
+}
+.notif.show { transform: translateX(-50%) translateY(0); }
+
+/* ── Solved modal ── */
+.solved-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.78);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9000;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.28s;
+}
+.solved-overlay.show { opacity: 1; pointer-events: all; }
+.solved-card {
+  background: linear-gradient(135deg, #302b63, #24243e);
+  border: 2px solid #ffd700;
+  border-radius: 24px;
+  padding: 44px 52px;
+  text-align: center;
+  max-width: 380px; width: 90%;
+}
+.solved-card h2 {
+  font-size: 2em; margin-bottom: 14px;
+  background: linear-gradient(90deg, #ffd700, #ff8c00);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.solved-ans {
+  font-size: 2.6em; font-weight: 900; color: #7bed9f;
+  margin-bottom: 22px; font-family: 'Courier New', monospace;
+}
+.solved-msg { opacity: 0.75; margin-bottom: 26px; font-size: 0.95em; }
+
+/* ── Narrow screen ── */
+@media (max-width: 500px) {
+  .equation-wrap { flex-direction: column; gap: 6px; }
+  .eq-side#sideL { border-radius: 14px !important; border: 2px dashed rgba(255,255,255,0.2) !important; }
+  .eq-side#sideR { border-radius: 14px !important; border: 2px dashed rgba(255,255,255,0.2) !important; }
+  .equals-sign {
+    min-height: 44px; width: 100%;
+    border: 2px dashed rgba(255,255,255,0.2);
+    border-radius: 10px; font-size: 2em;
+  }
+}
+</style>
+</head>
+<body>
+
+<h1>移項マスター</h1>
+<p class="subtitle">項をドラッグして「＝」を越えると符号が変わる！</p>
+
+<div class="prob-btns" id="probBtns"></div>
+
+<div class="gen-wrap">
+  <button class="btn btn-gen" onclick="generateRandomProblem()">✨ 問題を生成する</button>
+</div>
+
+<div class="hint-box">
+  <span class="hint-icon">💡</span>
+  <span id="hint">問題を選んで、項をドラッグしてみよう！</span>
+</div>
+
+<div class="equation-wrap">
+  <div class="eq-side" id="sideL"></div>
+  <div class="equals-sign" id="equalsSign">＝</div>
+  <div class="eq-side" id="sideR"></div>
+</div>
+
+<!-- Shown when left side has ax (a≠1) and no constants -->
+<div class="div-section" id="divSection">
+  <div>
+    <div class="div-label">x の係数が <strong id="divKLabel"></strong> だね。<br>両辺を <strong id="divKLabel2"></strong> で割ろう！</div>
+    <div class="div-preview" id="divPreview"></div>
+  </div>
+  <button class="btn btn-purple" onclick="divideByXCoeff()">÷ <span id="divKBtn"></span> を実行</button>
+</div>
+
+<div class="action-btns">
+  <button class="btn btn-gold"  onclick="combineAll()">同類項をまとめる</button>
+  <button class="btn btn-gold"  onclick="checkAns()">答えを確認</button>
+  <button class="btn btn-ghost" onclick="loadProblem(curProb)">リセット</button>
+</div>
+
+<div class="history-box">
+  <div class="history-title">📝 変形の記録</div>
+  <div id="historyList"></div>
+</div>
+
+<div class="sign-tooltip"    id="signTooltip"></div>
+<div class="reorder-tooltip" id="reorderTooltip">符号は変わらない！</div>
+<div class="notif"           id="notif"></div>
+
+<div class="solved-overlay" id="solvedOverlay">
+  <div class="solved-card">
+    <h2>正解！🎉</h2>
+    <div class="solved-ans" id="solvedAns"></div>
+    <p class="solved-msg">移項をうまく使えたね！</p>
+    <button class="btn btn-gold" onclick="hideSolved()">次の問題へ</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ────────────────────────────────────────────
+   Problem definitions  (c = integer coefficient)
+──────────────────────────────────────────── */
+const PROBLEMS = [
+  { label: '① x＋3＝7',        left:[{c:1,v:'x'},{c:3,v:null}],    right:[{c:7,v:null}],              ans: 4 },
+  { label: '② 2x－5＝3',       left:[{c:2,v:'x'},{c:-5,v:null}],   right:[{c:3,v:null}],              ans: 4 },
+  { label: '③ 3x＋2＝x＋8',    left:[{c:3,v:'x'},{c:2,v:null}],    right:[{c:1,v:'x'},{c:8,v:null}], ans: 3 },
+  { label: '④ 4x－1＝2x＋5',   left:[{c:4,v:'x'},{c:-1,v:null}],   right:[{c:2,v:'x'},{c:5,v:null}], ans: 3 },
+  { label: '⑤ 5x＋3＝18',      left:[{c:5,v:'x'},{c:3,v:null}],    right:[{c:18,v:null}],             ans: 3 },
+  { label: '⑥ x＋7＝3',        left:[{c:1,v:'x'},{c:7,v:null}],    right:[{c:3,v:null}],              ans:-4 },
+  { label: '⑦ 3x＋11＝2x＋5',  left:[{c:3,v:'x'},{c:11,v:null}],   right:[{c:2,v:'x'},{c:5,v:null}], ans:-6 },
+  { label: '⑧ -2x＋1＝7',      left:[{c:-2,v:'x'},{c:1,v:null}],   right:[{c:7,v:null}],              ans:-3 },
+  { label: '⑨ 3x＋2＝4x＋5',   left:[{c:3,v:'x'},{c:2,v:null}],    right:[{c:4,v:'x'},{c:5,v:null}], ans:-3 },
+  { label: '⑩ x＋9＝3x＋5',    left:[{c:1,v:'x'},{c:9,v:null}],    right:[{c:3,v:'x'},{c:5,v:null}], ans: 2 },
+];
+
+/* ────────────────────────────────────────────
+   Fraction arithmetic
+──────────────────────────────────────────── */
+function gcd(a, b) {
+  a = Math.abs(a); b = Math.abs(b);
+  while (b) { const t = b; b = a % b; a = t; }
+  return a || 1;
+}
+
+function fSimp(n, d) {
+  if (n === 0) return { n: 0, d: 1 };
+  const g = gcd(Math.abs(n), Math.abs(d));
+  let sn = n / g, sd = d / g;
+  if (sd < 0) { sn = -sn; sd = -sd; }
+  return { n: sn, d: sd };
+}
+
+function fAdd(n1, d1, n2, d2) {
+  return fSimp(n1 * d2 + n2 * d1, d1 * d2);
+}
+
+/* ────────────────────────────────────────────
+   State
+──────────────────────────────────────────── */
+let nid = 0;
+
+const mk = (n, v, d = 1) => {
+  const f = fSimp(n, d);
+  return { id: ++nid, n: f.n, d: f.d, v };
+};
+
+let L = [], R = [];
+let curProb = 0;
+let history = [];
+let drag = null;
+
+/* ────────────────────────────────────────────
+   Load / reset problem
+──────────────────────────────────────────── */
+function loadProblem(idx) {
+  curProb = idx;
+  const p = PROBLEMS[idx];
+  L = p.left .map(t => mk(t.c, t.v));
+  R = p.right.map(t => mk(t.c, t.v));
+  history = [eqStr()];
+
+  document.querySelectorAll('.pb').forEach((b, i) =>
+    b.classList.toggle('active', i === idx));
+
+  render();
+  renderHistory();
+  updateHint();
+}
+
+/* ────────────────────────────────────────────
+   Display helpers
+──────────────────────────────────────────── */
+function termBodyText(n, d, v) {
+  const a = Math.abs(n);
+  if (d === 1) return v ? (a === 1 ? v : a + v) : String(a);
+  const fracStr = `${a}/${d}`;
+  return v ? fracStr + v : fracStr;
+}
+
+function termBodyHTML(n, d, v) {
+  const a = Math.abs(n);
+  let coeffHTML;
+  if (d === 1) {
+    coeffHTML = (v && a === 1) ? '' : String(a);
+  } else {
+    coeffHTML = `<span class="frac-inline"><span class="fn">${a}</span><span class="fd">${d}</span></span>`;
+  }
+  return coeffHTML + (v ? v : '');
+}
+
+function eqStr() {
+  const side = arr => {
+    if (!arr.length) return '０';
+    return arr.map((t, i) => {
+      const body = termBodyText(t.n, t.d, t.v);
+      const sign = t.n < 0 ? '－' : (i === 0 ? '' : '＋');
+      return sign + body;
+    }).join('');
+  };
+  return side(L) + ' ＝ ' + side(R);
+}
+
+function render() {
+  renderSide('L', L);
+  renderSide('R', R);
+}
+
+function renderSide(side, terms) {
+  const el = document.getElementById('side' + side);
+  el.innerHTML = '';
+  if (!terms.length) {
+    el.innerHTML = '<span class="empty-hint">０</span>';
+    return;
+  }
+  terms.forEach((term, i) => {
+    const card = buildCard(term, i === 0);
+    card.dataset.tid  = term.id;
+    card.dataset.side = side;
+    card.addEventListener('pointerdown', onPointerDown);
+    el.appendChild(card);
+  });
+}
+
+function buildCard(term, isFirst) {
+  const el = document.createElement('div');
+  el.className = 'term-card ' + (term.v ? 'var-term' : 'const-term');
+  let html = '';
+  if (isFirst) {
+    if (term.n < 0) html += `<span class="card-sign neg">－</span>`;
+  } else {
+    const cls  = term.n >= 0 ? 'pos' : 'neg';
+    const char = term.n >= 0 ? '＋' : '－';
+    html += `<span class="card-sign ${cls}">${char}</span>`;
+  }
+  html += `<span class="card-body">${termBodyHTML(term.n, term.d, term.v)}</span>`;
+  el.innerHTML = html;
+  return el;
+}
+
+function buildCardWithSign(n, d, v) {
+  const el = document.createElement('div');
+  el.className = 'term-card ' + (v ? 'var-term' : 'const-term');
+  const cls  = n >= 0 ? 'pos' : 'neg';
+  const char = n >= 0 ? '＋' : '－';
+  el.innerHTML =
+    `<span class="card-sign ${cls}">${char}</span>` +
+    `<span class="card-body">${termBodyHTML(n, d, v)}</span>`;
+  return el;
+}
+
+/* ────────────────────────────────────────────
+   Drag system
+──────────────────────────────────────────── */
+function onPointerDown(e) {
+  if (drag) return;
+  e.preventDefault();
+
+  const card     = e.currentTarget;
+  const termId   = parseInt(card.dataset.tid, 10);
+  const fromSide = card.dataset.side;
+  const isTouch  = e.pointerType === 'touch';
+  const rect     = card.getBoundingClientRect();
+
+  const term    = findTerm(termId);
+  const floatEl = buildCardWithSign(term.n, term.d, term.v);
+  floatEl.classList.add('floating-card');
+  floatEl.style.width = rect.width + 'px';
+  floatEl.style.left  = rect.left  + 'px';
+  floatEl.style.top   = rect.top   + 'px';
+  document.body.appendChild(floatEl);
+
+  card.classList.add('ghost');
+
+  const touchLift = isTouch ? 64 : 0;
+
+  drag = {
+    termId, fromSide, floatEl,
+    ghostEl    : card,
+    offsetX    : e.clientX - rect.left,
+    offsetY    : e.clientY - rect.top - touchLift,
+    crossing   : false,
+    prevVisIdx : -1,
+  };
+
+  document.addEventListener('pointermove',   onPointerMove, { passive: false });
+  document.addEventListener('pointerup',     onPointerUp);
+  document.addEventListener('pointercancel', onPointerUp);
+}
+
+function onPointerMove(e) {
+  if (!drag) return;
+  e.preventDefault();
+
+  drag.floatEl.style.left = (e.clientX - drag.offsetX) + 'px';
+  drag.floatEl.style.top  = (e.clientY - drag.offsetY) + 'px';
+
+  const eqEl   = document.getElementById('equalsSign');
+  const eqRect = eqEl.getBoundingClientRect();
+  const sideEl = document.getElementById('side' + drag.fromSide);
+
+  const eqCx = eqRect.left + eqRect.width / 2;
+  const eqCy = eqRect.top  + eqRect.height / 2;
+  const crossing = window.innerWidth <= 500
+    ? (drag.fromSide === 'L' && e.clientY > eqCy) || (drag.fromSide === 'R' && e.clientY < eqCy)
+    : (drag.fromSide === 'L' && e.clientX > eqCx) || (drag.fromSide === 'R' && e.clientX < eqCx);
+
+  if (crossing !== drag.crossing) {
+    drag.crossing = crossing;
+    eqEl.classList.toggle('crossing', crossing);
+    drag.floatEl.classList.toggle('will-flip', crossing);
+    const term = findTerm(drag.termId);
+    updateFloatCard(crossing ? -term.n : term.n, term.d, term.v);
+    if (crossing) {
+      drag.prevVisIdx = -1;
+      hideInsertIndicator();
+      sideEl.classList.remove('reorder-ready');
+      hideReorderTooltip();
+      showTooltip(e.clientX, e.clientY, term.n);
+    } else {
+      hideTooltip();
+    }
+  } else if (crossing) {
+    moveTooltip(e.clientX, e.clientY);
+  }
+
+  if (!crossing) {
+    const visIdx = getInsertIndex(e.clientX, e.clientY, drag.fromSide);
+    if (visIdx >= 0) {
+      if (visIdx !== drag.prevVisIdx) {
+        drag.prevVisIdx = visIdx;
+        showInsertIndicator(drag.fromSide, visIdx);
+      }
+      sideEl.classList.add('reorder-ready');
+      showReorderTooltip(e.clientX, e.clientY);
+    } else {
+      if (drag.prevVisIdx >= 0) { drag.prevVisIdx = -1; hideInsertIndicator(); }
+      sideEl.classList.remove('reorder-ready');
+      hideReorderTooltip();
+    }
+  }
+}
+
+function updateFloatCard(n, d, v) {
+  if (!drag) return;
+  const signEl = drag.floatEl.querySelector('.card-sign');
+  const bodyEl = drag.floatEl.querySelector('.card-body');
+  if (signEl) {
+    signEl.className   = 'card-sign ' + (n >= 0 ? 'pos' : 'neg');
+    signEl.textContent = n >= 0 ? '＋' : '－';
+  }
+  if (bodyEl) bodyEl.innerHTML = termBodyHTML(n, d, v);
+}
+
+function onPointerUp(e) {
+  if (!drag) return;
+
+  const { termId, fromSide, crossing } = drag;
+  let insertBeforeId = undefined;
+
+  if (!crossing && e.type !== 'pointercancel') {
+    const visIdx = getInsertIndex(e.clientX, e.clientY, fromSide);
+    if (visIdx >= 0) {
+      const sideEl   = document.getElementById('side' + fromSide);
+      const visCards = [...sideEl.querySelectorAll('.term-card:not(.ghost)')];
+      insertBeforeId = visIdx < visCards.length
+        ? parseInt(visCards[visIdx].dataset.tid, 10)
+        : null;
+    }
+  }
+
+  document.removeEventListener('pointermove',   onPointerMove);
+  document.removeEventListener('pointerup',     onPointerUp);
+  document.removeEventListener('pointercancel', onPointerUp);
+
+  document.getElementById('equalsSign').classList.remove('crossing');
+  document.getElementById('sideL').classList.remove('reorder-ready');
+  document.getElementById('sideR').classList.remove('reorder-ready');
+  hideTooltip();
+  hideInsertIndicator();
+  hideReorderTooltip();
+
+  drag.floatEl.remove();
+  drag.ghostEl.classList.remove('ghost');
+  drag = null;
+
+  if (crossing) {
+    doMoveTerm(termId, fromSide);
+  } else if (insertBeforeId !== undefined) {
+    doReorderTerm(termId, fromSide, insertBeforeId);
+  }
+}
+
+/* ────────────────────────────────────────────
+   Move term  (sign flips)
+──────────────────────────────────────────── */
+function doMoveTerm(termId, fromSide) {
+  const fromArr = fromSide === 'L' ? L : R;
+  const toArr   = fromSide === 'L' ? R : L;
+
+  const idx = fromArr.findIndex(t => t.id === termId);
+  if (idx === -1) return;
+
+  const term  = fromArr[idx];
+  const moved = mk(-term.n, term.v, term.d);
+
+  fromArr.splice(idx, 1);
+  toArr.push(moved);
+
+  history.push(eqStr());
+  render();
+  renderHistory();
+  updateHint();
+
+  requestAnimationFrame(() => {
+    const el = document.querySelector(`[data-tid="${moved.id}"]`);
+    if (el) {
+      el.classList.add('flip-anim');
+      setTimeout(() => el.classList.remove('flip-anim'), 600);
+    }
+  });
+
+  const signLabel = moved.n >= 0 ? '＋（プラス）' : '－（マイナス）';
+  showNotif(`「＝」を越えた！ 符号が ${signLabel} に変わった！`);
+}
+
+/* ────────────────────────────────────────────
+   Combine like terms
+──────────────────────────────────────────── */
+function combineAll() {
+  L = combineSide(L);
+  R = combineSide(R);
+  history.push(eqStr());
+  render();
+  renderHistory();
+  updateHint();
+  showNotif('同類項をまとめました！');
+}
+
+function combineSide(terms) {
+  const map = new Map();
+  terms.forEach(t => {
+    const key = t.v ?? '__const__';
+    if (map.has(key)) {
+      const ex = map.get(key);
+      const s  = fAdd(ex.n, ex.d, t.n, t.d);
+      ex.n = s.n; ex.d = s.d;
+    } else {
+      map.set(key, { id: ++nid, n: t.n, d: t.d, v: t.v });
+    }
+  });
+  return [...map.values()]
+    .filter(t => t.n !== 0)
+    .sort((a, b) => (b.v ? 1 : 0) - (a.v ? 1 : 0));
+}
+
+/* ────────────────────────────────────────────
+   Divide both sides by x coefficient
+──────────────────────────────────────────── */
+function divideByXCoeff() {
+  const cl = combineSide([...L]);
+  const xTerm = cl.find(t => t.v === 'x');
+  if (!xTerm) { showNotif('左辺に x がないよ！'); return; }
+
+  const kN = xTerm.n, kD = xTerm.d;
+
+  const divArr = arr => arr.map(t => {
+    const f = fSimp(t.n * kD, t.d * kN);
+    return { id: ++nid, n: f.n, d: f.d, v: t.v };
+  });
+
+  L = divArr(L);
+  R = divArr(R);
+
+  history.push(eqStr());
+  render();
+  renderHistory();
+  updateHint();
+
+  const kStr = kD === 1 ? String(kN) : `${kN}/${kD}`;
+  showNotif(`両辺を ${kStr} で割った！`);
+}
+
+/* ────────────────────────────────────────────
+   Check answer
+──────────────────────────────────────────── */
+function checkAns() {
+  const readyToCheck =
+    L.length === 1 && L[0].v === 'x' && L[0].n === 1 && L[0].d === 1 &&
+    R.length === 1 && !R[0].v;
+
+  if (!readyToCheck) {
+    showNotif('左辺を x だけ、右辺を数だけにしてから確認しよう！');
+    return;
+  }
+
+  const rc  = R[0];
+  const val = rc.n / rc.d;
+  val === PROBLEMS[curProb].ans
+    ? showSolved(rc.n, rc.d)
+    : showNotif(`x ＝ ${termBodyText(rc.n, rc.d, null)} ……もう一度計算を確認してみよう`);
+}
+
+/* ────────────────────────────────────────────
+   Hint text + divide-section visibility
+──────────────────────────────────────────── */
+function updateHint() {
+  const hasRx = R.some(t =>  t.v === 'x');
+  const hasLc = L.some(t => !t.v);
+
+  const needsDivide =
+    L.length === 1 && L[0].v === 'x' &&
+    R.length === 1 && !R[0].v &&
+    !(L[0].n === 1 && L[0].d === 1);
+
+  const divSec = document.getElementById('divSection');
+  if (needsDivide) {
+    const lx = L[0];
+    const rc = R[0];
+    const kStr = lx.d === 1 ? String(lx.n) : `${lx.n}/${lx.d}`;
+    document.getElementById('divKLabel').textContent  = kStr;
+    document.getElementById('divKLabel2').textContent = kStr;
+    document.getElementById('divKBtn').textContent    = kStr;
+
+    const ans = fSimp(rc.n * lx.d, rc.d * lx.n);
+    const preview =
+      `${termBodyText(lx.n, lx.d, 'x')} ＝ ${termBodyText(rc.n, rc.d, null)}` +
+      `  →  x ＝ ${termBodyText(ans.n, ans.d, null)}`;
+    document.getElementById('divPreview').textContent = preview;
+    divSec.classList.add('visible');
+  } else {
+    divSec.classList.remove('visible');
+  }
+
+  let hint;
+  if (hasRx && hasLc) {
+    hint = '右辺の x の項を左辺へ、左辺の数の項を右辺へ移項しよう！';
+  } else if (hasRx) {
+    hint = '右辺にある x の項をドラッグして「＝」を越えよう！';
+  } else if (hasLc) {
+    hint = '左辺にある数の項をドラッグして「＝」を越えよう！';
+  } else if (needsDivide) {
+    hint = `移項できた！あとは両辺を ${document.getElementById('divKLabel').textContent} で割れば x が求まるよ！`;
+  } else if (L.length === 1 && L[0].v === 'x' && L[0].n === 1 && L[0].d === 1) {
+    hint = '完成！「答えを確認」ボタンを押してみよう 🎉';
+  } else {
+    hint = '移項できたら「同類項をまとめる」を押してみよう！';
+  }
+  document.getElementById('hint').textContent = hint;
+}
+
+/* ────────────────────────────────────────────
+   UI helpers
+──────────────────────────────────────────── */
+function findTerm(id) {
+  return [...L, ...R].find(t => t.id === id);
+}
+
+function showNotif(msg) {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+/* ────────────────────────────────────────────
+   Same-side reorder helpers
+──────────────────────────────────────────── */
+function getInsertIndex(clientX, clientY, side) {
+  const sideEl   = document.getElementById('side' + side);
+  const sideRect = sideEl.getBoundingClientRect();
+  const margin   = 28;
+
+  if (clientX < sideRect.left - margin || clientX > sideRect.right  + margin ||
+      clientY < sideRect.top  - margin || clientY > sideRect.bottom + margin) {
+    return -1;
+  }
+
+  const cards = [...sideEl.querySelectorAll('.term-card:not(.ghost)')];
+  if (!cards.length) return 0;
+
+  for (let i = 0; i < cards.length; i++) {
+    const r = cards[i].getBoundingClientRect();
+    if (clientX < r.left + r.width / 2) return i;
+  }
+  return cards.length;
+}
+
+function showInsertIndicator(side, idx) {
+  document.querySelectorAll('.insert-before, .insert-after').forEach(el => {
+    el.classList.remove('insert-before', 'insert-after');
+  });
+  const sideEl = document.getElementById('side' + side);
+  const cards  = [...sideEl.querySelectorAll('.term-card:not(.ghost)')];
+  if (!cards.length) return;
+  if (idx < cards.length) {
+    cards[idx].classList.add('insert-before');
+  } else {
+    cards[cards.length - 1].classList.add('insert-after');
+  }
+}
+
+function hideInsertIndicator() {
+  document.querySelectorAll('.insert-before, .insert-after').forEach(el => {
+    el.classList.remove('insert-before', 'insert-after');
+  });
+}
+
+function doReorderTerm(termId, fromSide, insertBeforeId) {
+  const arr    = fromSide === 'L' ? L : R;
+  const curIdx = arr.findIndex(t => t.id === termId);
+  if (curIdx === -1) return;
+
+  let insertDataIdx;
+  if (insertBeforeId === null) {
+    insertDataIdx = arr.length;
+  } else {
+    insertDataIdx = arr.findIndex(t => t.id === insertBeforeId);
+    if (insertDataIdx === -1) return;
+  }
+
+  if (insertDataIdx === curIdx || insertDataIdx === curIdx + 1) return;
+
+  const [term]   = arr.splice(curIdx, 1);
+  const adjusted = insertDataIdx > curIdx ? insertDataIdx - 1 : insertDataIdx;
+  arr.splice(adjusted, 0, term);
+
+  render();
+  showNotif('順番を入れ替えた！符号は変わらないよ ✓');
+}
+
+function showReorderTooltip(x, y) {
+  const el = document.getElementById('reorderTooltip');
+  el.style.left = x + 'px';
+  el.style.top  = (y - 58) + 'px';
+  el.classList.add('show');
+}
+function hideReorderTooltip() {
+  document.getElementById('reorderTooltip').classList.remove('show');
+}
+
+function showTooltip(x, y, origN) {
+  const el   = document.getElementById('signTooltip');
+  const from = origN >= 0 ? '＋' : '－';
+  const to   = origN >= 0 ? '－' : '＋';
+  el.textContent = `符号が変わる！ ${from} → ${to}`;
+  el.style.left = x + 'px';
+  el.style.top  = (y - 58) + 'px';
+  el.classList.add('show');
+}
+function moveTooltip(x, y) {
+  const el = document.getElementById('signTooltip');
+  el.style.left = x + 'px';
+  el.style.top  = (y - 58) + 'px';
+}
+function hideTooltip() {
+  document.getElementById('signTooltip').classList.remove('show');
+}
+
+function renderHistory() {
+  document.getElementById('historyList').innerHTML =
+    history.map((s, i) => {
+      const cur = i === history.length - 1;
+      return `<div class="step ${cur ? 'current' : ''}">
+        <span class="step-n">${i + 1}</span>${s}
+      </div>`;
+    }).join('');
+}
+
+function showSolved(n, d) {
+  const ansStr = d === 1 ? `x ＝ ${n}` : `x ＝ ${n}/${d}`;
+  document.getElementById('solvedAns').textContent = ansStr;
+  document.getElementById('solvedOverlay').classList.add('show');
+}
+function hideSolved() {
+  document.getElementById('solvedOverlay').classList.remove('show');
+  loadProblem((curProb + 1) % PROBLEMS.length);
+}
+
+/* ────────────────────────────────────────────
+   Random problem generator
+──────────────────────────────────────────── */
+function generateRandomProblem() {
+  const rnd  = (lo, hi) => Math.floor(Math.random() * (hi - lo + 1)) + lo;
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+  let ans;
+  do { ans = rnd(-7, 7); } while (ans === 0);
+
+  const type = rnd(0, 3);
+  let left, right;
+
+  if (type === 0) {
+    const a = rnd(1, 5);
+    const b = pick([-6,-5,-4,-3,-2,-1,1,2,3,4,5,6]);
+    const d = a * ans + b;
+    left  = [{c: a, v: 'x'}, {c: b, v: null}];
+    right = [{c: d, v: null}];
+
+  } else if (type === 1) {
+    const a = rnd(2, 5);
+    const c = rnd(1, a - 1);
+    const b = pick([-5,-4,-3,-2,-1,1,2,3,4,5]);
+    const d = (a - c) * ans + b;
+    left  = [{c: a, v: 'x'}, {c: b, v: null}];
+    right = d !== 0 ? [{c: c, v: 'x'}, {c: d, v: null}] : [{c: c, v: 'x'}];
+
+  } else if (type === 2) {
+    const a = rnd(1, 3);
+    const b = rnd(1, 9);
+    const d = -a * ans + b;
+    left  = [{c: -a, v: 'x'}, {c: b, v: null}];
+    right = [{c: d, v: null}];
+
+  } else {
+    const c = rnd(2, 5);
+    const a = rnd(1, c - 1);
+    const b = pick([-5,-4,-3,-2,-1,1,2,3,4,5]);
+    const d = (a - c) * ans + b;
+    left  = [{c: a, v: 'x'}, {c: b, v: null}];
+    right = d !== 0 ? [{c: c, v: 'x'}, {c: d, v: null}] : [{c: c, v: 'x'}];
+  }
+
+  const fmtSide = arr => arr.map((t, i) => {
+    const neg  = t.c < 0;
+    const absC = Math.abs(t.c);
+    const body = t.v ? (absC === 1 ? t.v : absC + t.v) : String(absC);
+    const prefix = i === 0 ? (neg ? '－' : '') : (neg ? '－' : '＋');
+    return prefix + body;
+  }).join('');
+  const label = fmtSide(left) + '＝' + fmtSide(right);
+
+  const sumX = arr => arr.filter(t =>  t.v).reduce((s, t) => s + t.c, 0);
+  const sumC = arr => arr.filter(t => !t.v).reduce((s, t) => s + t.c, 0);
+  const lx = sumX(left), lc = sumC(left), rx = sumX(right), rc = sumC(right);
+  const computedAns = (rc - lc) / (lx - rx);
+
+  const prob = { label, left, right, ans: computedAns, generated: true };
+  PROBLEMS.push(prob);
+
+  const newIdx = PROBLEMS.length - 1;
+  const container = document.getElementById('probBtns');
+  const btn = document.createElement('button');
+  btn.className = 'pb pb-gen';
+  btn.textContent = label;
+  btn.onclick = () => loadProblem(newIdx);
+  container.appendChild(btn);
+
+  loadProblem(newIdx);
+}
+
+/* ────────────────────────────────────────────
+   Boot
+──────────────────────────────────────────── */
+(function init() {
+  const container = document.getElementById('probBtns');
+  PROBLEMS.forEach((p, i) => {
+    const b = document.createElement('button');
+    b.className = 'pb' + (i === 0 ? ' active' : '');
+    b.textContent = p.label;
+    b.onclick = () => loadProblem(i);
+    container.appendChild(b);
+  });
+  loadProblem(0);
+})();
+</script>
+</body>
+</html>
