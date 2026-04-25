@@ -452,6 +452,25 @@
 
     .tile.pow-tile { cursor: default; }
     .tile.pow-tile:hover { transform: none; }
+
+    /* Fraction display inside tile */
+    .frac-display {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 0.75em;
+      line-height: 1.15;
+      font-weight: 900;
+    }
+    .frac-display .frac-num {
+      border-bottom: 2.5px solid currentColor;
+      padding: 0 5px;
+      text-align: center;
+    }
+    .frac-display .frac-den {
+      padding: 0 5px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -477,6 +496,8 @@
     <button class="btn-preset" style="border-color:#0891b2;color:#67e8f9" onclick="loadPreset('-5+6÷(-3)')">-5+6÷(-3) ✨</button>
     <button class="btn-preset" style="border-color:#8b5cf6;color:#c4b5fd" onclick="loadPreset('3^2-5')">3²-5 ⚡</button>
     <button class="btn-preset" style="border-color:#8b5cf6;color:#c4b5fd" onclick="loadPreset('(-2)^3+6')">(-2)³+6 ⚡</button>
+    <button class="btn-preset" style="border-color:#0ea5e9;color:#7dd3fc" onclick="loadPreset('-4×(1/2)+3')">-4×½+3</button>
+    <button class="btn-preset" style="border-color:#0ea5e9;color:#7dd3fc" onclick="loadPreset('6×(2/3)-5')">6×⅔-5</button>
   </div>
   <button class="btn btn-generate" onclick="generateAndStart()">🎲 問題を生成する</button>
 </div>
@@ -515,23 +536,29 @@ function parseExpr(expr) {
   //   3. num × (num) / num ÷ (num)
   //   4. num × num   / num ÷ num
   //   5. num
-  const re = /\(([+-]?\d+)\)\^([23])|([+-]?\d+)\^([23])|([+-]?\d+)(×|÷)\(([+-]?\d+)\)|([+-]?\d+)(×|÷)([+-]?\d+)|([+-]?\d+)/g;
+  // Groups:
+  //  1,2   → (base)^exp
+  //  3,4   → base^exp
+  //  5,6,7 → num×(a/b)  fraction mul
+  //  8,9,10 → num×(int) or num÷(int)
+  //  11,12,13 → num×int or num÷int
+  //  14    → simple num
+  const re = /\(([+-]?\d+)\)\^([23])|([+-]?\d+)\^([23])|([+-]?\d+)×\((\d+)\/(\d+)\)|([+-]?\d+)(×|÷)\(([+-]?\d+)\)|([+-]?\d+)(×|÷)([+-]?\d+)|([+-]?\d+)/g;
   let m;
   while ((m = re.exec(expr)) !== null) {
     if (m[1] !== undefined) {
-      // (base)^exp
       terms.push({ type: 'pow', base: parseInt(m[1]), exp: parseInt(m[2]) });
     } else if (m[3] !== undefined) {
-      // base^exp
       terms.push({ type: 'pow', base: parseInt(m[3]), exp: parseInt(m[4]) });
     } else if (m[5] !== undefined) {
-      // mul with parens right side
-      terms.push({ type: 'mul', op: m[6], left: parseInt(m[5]), right: parseInt(m[7]) });
+      // fraction mul: left × (num/den)
+      terms.push({ type: 'mul', op: '×', left: parseInt(m[5]), rightFrac: { num: parseInt(m[6]), den: parseInt(m[7]) } });
     } else if (m[8] !== undefined) {
-      // mul without parens
       terms.push({ type: 'mul', op: m[9], left: parseInt(m[8]), right: parseInt(m[10]) });
+    } else if (m[11] !== undefined) {
+      terms.push({ type: 'mul', op: m[12], left: parseInt(m[11]), right: parseInt(m[13]) });
     } else {
-      terms.push({ type: 'simple', value: parseInt(m[11]) });
+      terms.push({ type: 'simple', value: parseInt(m[14]) });
     }
   }
   return terms;
@@ -560,7 +587,12 @@ function startGame() {
   if (terms.length < 2) { alert('2項以上の式を入力してください'); return; }
 
   tiles = terms.map(t => {
-    if (t.type === 'mul') return { id: idCtr++, type: 'mul', op: t.op || '×', left: t.left, right: t.right, revealed: false };
+    if (t.type === 'mul') {
+      const tile = { id: idCtr++, type: 'mul', op: t.op || '×', left: t.left, revealed: false };
+      if (t.rightFrac) tile.rightFrac = t.rightFrac;
+      else tile.right = t.right;
+      return tile;
+    }
     if (t.type === 'pow') return { id: idCtr++, type: 'pow', base: t.base, exp: t.exp };
     return { id: idCtr++, type: 'simple', value: t.value };
   });
@@ -584,6 +616,7 @@ function formatExprDisplay(terms) {
   return terms.map((t, i) => {
     if (t.type === 'mul') {
       const leftStr = (t.left >= 0 && i > 0) ? '+' + t.left : String(t.left);
+      if (t.rightFrac) return `${leftStr}×(${t.rightFrac.num}/${t.rightFrac.den})`;
       return `${leftStr}${t.op || '×'}(${t.right})`;
     }
     if (t.type === 'pow') {
@@ -692,10 +725,18 @@ function createMulSubEls(tile, isNew) {
   leftEl.textContent = fmt(tile.left);
 
   const rightEl = document.createElement('div');
-  rightEl.className = `tile ${colorClass(tile.right)} mul-sub${revClass}`;
   rightEl.dataset.mulid   = tile.id;
   rightEl.dataset.mulpart = 'right';
-  rightEl.textContent = `(${fmt(tile.right)})`;
+  if (tile.rightFrac) {
+    rightEl.className = `tile positive mul-sub${revClass}`;
+    const frac = document.createElement('div');
+    frac.className = 'frac-display';
+    frac.innerHTML = `<span class="frac-num">${tile.rightFrac.num}</span><span class="frac-den">${tile.rightFrac.den}</span>`;
+    rightEl.appendChild(frac);
+  } else {
+    rightEl.className = `tile ${colorClass(tile.right)} mul-sub${revClass}`;
+    rightEl.textContent = `(${fmt(tile.right)})`;
+  }
 
   [leftEl, rightEl].forEach(el => {
     el.addEventListener('pointerenter', () => highlightMulPair(tile.id, true));
@@ -777,7 +818,9 @@ function resolveMul(tileId) {
   if (idx === -1 || tiles[idx].type !== 'mul') return;
   const tile = tiles[idx];
 
-  const result = tile.op === '÷' ? tile.left / tile.right : tile.left * tile.right;
+  const result = tile.rightFrac
+    ? tile.left * tile.rightFrac.num / tile.rightFrac.den
+    : tile.op === '÷' ? tile.left / tile.right : tile.left * tile.right;
   const newId  = idCtr++;
   stepCount++;
 
@@ -915,6 +958,7 @@ function currentExprStr() {
   return tiles.map((t, i) => {
     if (t.type === 'mul') {
       const l = (t.left >= 0 && i > 0) ? '+' + t.left : String(t.left);
+      if (t.rightFrac) return `${l}×(${t.rightFrac.num}/${t.rightFrac.den})`;
       return `${l}${t.op}(${t.right})`;
     }
     if (t.type === 'pow') {
@@ -998,6 +1042,42 @@ function generateProblem() {
       if (t.type === 'pow') {
         const baseStr = t.base < 0 ? `(${t.base})` : (i > 0 ? '+' + t.base : String(t.base));
         return `${baseStr}^${t.exp}`;
+      }
+      return (t.value > 0 && i > 0) ? '+' + t.value : String(t.value);
+    }).join('');
+  }
+
+  // ~25% chance: fraction mul problem
+  if (Math.random() < 0.25) {
+    const validFracs = [
+      {num:1,den:2},{num:1,den:3},{num:1,den:4},{num:1,den:5},
+      {num:2,den:3},{num:2,den:5},
+      {num:3,den:4},{num:3,den:5}
+    ];
+    const fracCount = randInt(1, 2);
+    const simCount  = fracCount === 1 ? randInt(1, 2) : 0;
+    const terms = [];
+    for (let i = 0; i < fracCount; i++) {
+      const frac = validFracs[Math.floor(Math.random() * validFracs.length)];
+      // left must be multiple of den so product is integer; keep result in range
+      let left;
+      do {
+        const k = randNonZero(-5, 5);
+        left = k * frac.den;
+      } while (Math.abs(left * frac.num / frac.den) > 20 || left === 0);
+      terms.push({ type: 'mul', op: '×', left, rightFrac: frac });
+    }
+    for (let i = 0; i < simCount; i++) {
+      terms.push({ type: 'simple', value: randNonZero(-9, 9) });
+    }
+    for (let i = terms.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [terms[i], terms[j]] = [terms[j], terms[i]];
+    }
+    return terms.map((t, i) => {
+      if (t.type === 'mul' && t.rightFrac) {
+        const l = (t.left > 0 && i > 0) ? '+' + t.left : String(t.left);
+        return `${l}×(${t.rightFrac.num}/${t.rightFrac.den})`;
       }
       return (t.value > 0 && i > 0) ? '+' + t.value : String(t.value);
     }).join('');
