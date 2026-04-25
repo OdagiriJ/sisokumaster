@@ -741,7 +741,7 @@ function onMulPartPointerDown(e) {
     setTimeout(() => el.classList.remove('shaking'), 500);
   });
 
-  const tip = tile.op === '÷' ? '⚡ まずはわり算処理しよう！' : '⚡ まずはかけ算処理しよう！';
+  const tip = tile.op === '÷' ? '⚡ まずはわり算処理しよう！（「÷」をクリック）' : '⚡ まずはかけ算処理しよう！（「×」をクリック）';
   showTooltip(e.currentTarget, tip);
 
   // First time → highlight pair permanently
