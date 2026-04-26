@@ -528,6 +528,34 @@
 
     .reduced-pop { animation: reduced-pop 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards; }
 
+    /* 符号タイル（単独の＋か－）*/
+    .sign-tile-btn {
+      background: none;
+      border: 2.5px dashed #64748b;
+      color: #94a3b8;
+      font-size: 1.55em;
+      font-weight: 900;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      cursor: pointer;
+      align-self: center;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+      position: relative;
+      z-index: 1;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+    }
+    .sign-tile-btn:hover {
+      color: #fbbf24;
+      border-color: #fbbf24;
+      transform: scale(1.18);
+      box-shadow: 0 0 14px rgba(251,191,36,0.45);
+    }
+
     /* Fraction display inside tile */
     .frac-display {
       display: flex;
@@ -575,6 +603,9 @@
     <button class="btn-preset" style="border-color:#0ea5e9;color:#7dd3fc" onclick="loadPreset('6×(2/3)-5')">6×⅔-5</button>
     <button class="btn-preset" style="border-color:#f472b6;color:#fbcfe8" onclick="loadPreset('6÷(3/2)-2')">6÷³⁄₂-2 🔄</button>
     <button class="btn-preset" style="border-color:#f472b6;color:#fbcfe8" onclick="loadPreset('-9÷(3/4)+1')">-9÷¾+1 🔄</button>
+    <button class="btn-preset" style="border-color:#34d399;color:#6ee7b7" onclick="loadPreset('-(-4)+3')">-(-4)+3 ±</button>
+    <button class="btn-preset" style="border-color:#34d399;color:#6ee7b7" onclick="loadPreset('5-(-4)-2')">5-(-4)-2 ±</button>
+    <button class="btn-preset" style="border-color:#34d399;color:#6ee7b7" onclick="loadPreset('-(-3)-(-2)+1')">-(-3)-(-2)+1 ±</button>
   </div>
   <button class="btn btn-generate" onclick="generateAndStart()">🎲 問題を生成する</button>
 </div>
@@ -651,13 +682,14 @@ function parseExpr(expr) {
   //  11,12,13 → num×int or num÷int
   //  14    → simple num
   // Groups:
-  //  m[1],m[2]           → (base)^exp
-  //  m[3],m[4]           → base^exp
-  //  m[5],m[6],m[7],m[8] → left(×|÷)(num/den)   ← fraction mul/div
-  //  m[9],m[10],m[11]    → left(×|÷)(int)
-  //  m[12],m[13],m[14]   → left(×|÷)int
-  //  m[15]               → simple
-  const re = /\(([+-]?\d+)\)\^([23])|([+-]?\d+)\^([23])|([+-]?\d+)(×|÷)\((\d+)\/(\d+)\)|([+-]?\d+)(×|÷)\(([+-]?\d+)\)|([+-]?\d+)(×|÷)([+-]?\d+)|([+-]?\d+)/g;
+  //  m[1],m[2]            → (base)^exp
+  //  m[3],m[4]            → base^exp
+  //  m[5],m[6],m[7],m[8]  → left(×|÷)(num/den)  ← fraction mul/div
+  //  m[9],m[10],m[11]     → left(×|÷)(int)
+  //  m[12],m[13],m[14]    → left(×|÷)int
+  //  m[15],m[16]          → sign(value)  ← 符号タイル e.g. -(−4) or +(+3)
+  //  m[17]                → simple
+  const re = /\(([+-]?\d+)\)\^([23])|([+-]?\d+)\^([23])|([+-]?\d+)(×|÷)\((\d+)\/(\d+)\)|([+-]?\d+)(×|÷)\(([+-]?\d+)\)|([+-]?\d+)(×|÷)([+-]?\d+)|([+-])\(([+-]?\d+)\)|([+-]?\d+)/g;
   let m;
   while ((m = re.exec(expr)) !== null) {
     if (m[1] !== undefined) {
@@ -671,8 +703,12 @@ function parseExpr(expr) {
       terms.push({ type: 'mul', op: m[10], left: parseInt(m[9]), right: parseInt(m[11]) });
     } else if (m[12] !== undefined) {
       terms.push({ type: 'mul', op: m[13], left: parseInt(m[12]), right: parseInt(m[14]) });
+    } else if (m[15] !== undefined) {
+      // 符号タイル: -(−4) / +(+3) など — sign tile + value tile の2つを生成
+      terms.push({ type: 'sign', op: m[15] });
+      terms.push({ type: 'simple', value: parseInt(m[16]) });
     } else {
-      terms.push({ type: 'simple', value: parseInt(m[15]) });
+      terms.push({ type: 'simple', value: parseInt(m[17]) });
     }
   }
   return terms;
@@ -701,6 +737,7 @@ function startGame() {
   if (terms.length < 2) { alert('2項以上の式を入力してください'); return; }
 
   tiles = terms.map(t => {
+    if (t.type === 'sign') return { id: idCtr++, type: 'sign', op: t.op };
     if (t.type === 'mul') {
       const tile = { id: idCtr++, type: 'mul', op: t.op || '×', left: t.left, revealed: false };
       if (t.rightFrac) tile.rightFrac = t.rightFrac;
@@ -729,19 +766,33 @@ function startGame() {
 }
 
 function formatExprDisplay(terms) {
-  return terms.map((t, i) => {
-    if (t.type === 'mul') {
-      const leftStr = (t.left >= 0 && i > 0) ? '+' + t.left : String(t.left);
-      if (t.rightFrac) return `${leftStr}${t.op}(${t.rightFrac.num}/${t.rightFrac.den})`;
-      return `${leftStr}${t.op || '×'}(${t.right})`;
+  const parts = [];
+  let i = 0;
+  while (i < terms.length) {
+    const t = terms[i];
+    if (t.type === 'sign') {
+      // 符号と次の値を 1 つにまとめて表示: -(−4) / +(+3)
+      const next = terms[i + 1];
+      if (next && next.type === 'simple') {
+        const valStr = next.value >= 0 ? `+${next.value}` : String(next.value);
+        parts.push(`${t.op}(${valStr})`);
+        i += 2; continue;
+      }
+      parts.push(t.op);
+    } else if (t.type === 'mul') {
+      const l = parts.length === 0 ? String(t.left) : (t.left >= 0 ? '+' + t.left : String(t.left));
+      if (t.rightFrac) parts.push(`${l}${t.op}(${t.rightFrac.num}/${t.rightFrac.den})`);
+      else parts.push(`${l}${t.op || '×'}(${t.right})`);
+    } else if (t.type === 'pow') {
+      const baseStr = t.base < 0 ? `(${t.base})` : (parts.length === 0 ? String(t.base) : '+' + t.base);
+      parts.push(`${baseStr}^${t.exp}`);
+    } else { // simple
+      if (parts.length === 0) parts.push(String(t.value));
+      else parts.push(t.value >= 0 ? `+${t.value}` : String(t.value));
     }
-    if (t.type === 'pow') {
-      const baseStr = t.base < 0 ? `(${t.base})` : (i > 0 ? '+' + t.base : String(t.base));
-      return `${baseStr}^${t.exp}`;
-    }
-    if (i === 0) return String(t.value);
-    return (t.value >= 0 ? '+' : '') + t.value;
-  }).join(' ');
+    i++;
+  }
+  return parts.join(' ');
 }
 
 /* ---- Render ---- */
@@ -750,7 +801,9 @@ function render(newId = null) {
   area.innerHTML = '';
 
   tiles.forEach(tile => {
-    if (tile.type === 'mul') {
+    if (tile.type === 'sign') {
+      area.appendChild(createSignEl(tile, tile.id === newId));
+    } else if (tile.type === 'mul') {
       createMulSubEls(tile, tile.id === newId).forEach(el => { if (el) area.appendChild(el); });
     } else if (tile.type === 'pow') {
       area.appendChild(createPowTileEl(tile, tile.id === newId));
@@ -760,14 +813,17 @@ function render(newId = null) {
   });
 
   const rem = document.getElementById('remaining');
-  const mulCount = tiles.filter(t => t.type === 'mul').length;
-  const powCount = tiles.filter(t => t.type === 'pow').length;
-  const simCount = tiles.filter(t => t.type === 'simple').length;
+  const mulCount  = tiles.filter(t => t.type === 'mul').length;
+  const powCount  = tiles.filter(t => t.type === 'pow').length;
+  const signCount = tiles.filter(t => t.type === 'sign').length;
+  const simCount  = tiles.filter(t => t.type === 'simple').length;
 
   if (powCount > 0) {
     rem.innerHTML = `<b style="color:#c4b5fd">指数</b> をクリックして累乗を計算しよう！`;
   } else if (mulCount > 0 && tiles.some(t => t.type === 'mul' && t.revealed)) {
     rem.innerHTML = `<b style="color:#fbbf24">×</b> ボタンを押してかけ算を解決しよう！`;
+  } else if (signCount > 0) {
+    rem.innerHTML = `<b style="color:#f59e0b">＋ / −</b> の符号をクリックして統合しよう！`;
   } else if (simCount > 1 || (simCount >= 1 && mulCount === 0)) {
     rem.innerHTML = simCount > 1
       ? `残り <b>${simCount}</b> 項 — あと <b>${simCount - 1}</b> 回合体できます`
@@ -775,6 +831,100 @@ function render(newId = null) {
   } else {
     rem.innerHTML = '';
   }
+}
+
+/* ---- Sign tile element ---- */
+function createSignEl(tile, isNew) {
+  const btn = document.createElement('button');
+  btn.className = 'sign-tile-btn';
+  btn.dataset.id = tile.id;
+  btn.title = 'クリックで符号を統合';
+  btn.textContent = tile.op === '+' ? '＋' : '－';
+
+  if (isNew) {
+    btn.style.animation = 'pop-in 0.42s cubic-bezier(0.34,1.56,0.64,1) forwards';
+  }
+
+  btn.addEventListener('click', () => resolveSign(tile.id));
+  return btn;
+}
+
+/* ---- Sign resolve: 符号が右のカードにスライドして統合 ---- */
+function resolveSign(signTileId) {
+  const signIdx = tiles.findIndex(t => t.id === signTileId);
+  if (signIdx === -1) return;
+
+  const signTile = tiles[signIdx];
+  const rightTile = tiles[signIdx + 1];
+  if (!rightTile) return;
+
+  const signEl  = document.querySelector(`.sign-tile-btn[data-id="${signTileId}"]`);
+  const rightEl = document.querySelector(`.tile[data-id="${rightTile.id}"]`);
+
+  // 右隣が累乗タイルなら先に累乗を処理させる
+  if (rightTile.type === 'pow') {
+    showTooltip(signEl || document.body, '⚡ 累乗を先に計算しよう（指数をクリック）');
+    return;
+  }
+  // 右隣がかけ算タイルなら先にかけ算を処理させる
+  if (rightTile.type === 'mul') {
+    const tip = rightTile.op === '÷' ? '⚡ わり算を先に処理しよう' : '⚡ かけ算を先に処理しよう';
+    showTooltip(signEl || document.body, tip);
+    return;
+  }
+  // 右隣がさらに符号タイルの場合も先に処理
+  if (rightTile.type === 'sign') {
+    showTooltip(signEl || document.body, '⚡ 右の符号を先に処理しよう');
+    return;
+  }
+
+  if (!signEl || !rightEl) return;
+  pushHistory();
+
+  // ---- アニメーション: 符号が右のカードへスライド ----
+  const sr = signEl.getBoundingClientRect();
+  const rr = rightEl.getBoundingClientRect();
+  const dx = (rr.left + rr.width  / 2) - (sr.left + sr.width  / 2);
+  const dy = (rr.top  + rr.height / 2) - (sr.top  + sr.height / 2);
+
+  signEl.style.position   = 'relative';
+  signEl.style.zIndex     = '300';
+  signEl.style.transition = `transform 0.30s cubic-bezier(0.4,0,0.2,1), opacity 0.30s ease`;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    signEl.style.transform = `translate(${dx}px, ${dy}px) scale(1.6)`;
+    signEl.style.opacity   = '0';
+  }));
+
+  // 右タイルが光ってはじく
+  setTimeout(() => {
+    if (!rightEl.isConnected) return;
+    rightEl.style.transition = 'transform 0.10s ease-out, box-shadow 0.10s ease-out';
+    rightEl.style.transform  = 'scale(1.22)';
+    rightEl.style.boxShadow  = '0 0 0 5px rgba(251,191,36,0.75)';
+    setTimeout(() => {
+      rightEl.style.transform = '';
+      rightEl.style.boxShadow = '';
+    }, 160);
+  }, 210);
+
+  // ---- データ更新・再描画 ----
+  setTimeout(() => {
+    const newValue = signTile.op === '-' ? -rightTile.value : rightTile.value;
+
+    tiles.splice(signIdx, 1); // 符号タイルを削除
+    const ri = tiles.findIndex(t => t.id === rightTile.id);
+    if (ri === -1) return;
+    const newId = idCtr++;
+    tiles[ri] = { id: newId, type: 'simple', value: newValue };
+
+    stepCount++;
+    addIntermediate();
+    render(newId);
+
+    if (tiles.length === 1 && tiles[0].type === 'simple') {
+      setTimeout(() => showWin(tiles[0].value, stepCount), 550);
+    }
+  }, 360);
 }
 
 function createSimpleTileEl(tile, isNew) {
@@ -1143,6 +1293,11 @@ function onPointerDown(e) {
     return;
   }
 
+  if (tiles.some(t => t.type === 'sign')) {
+    showTooltip(el, '⚡ まず符号（＋/−）をクリックして統合しよう！');
+    return;
+  }
+
   dragId = parseInt(el.dataset.id);
   const tile = tiles.find(t => t.id === dragId);
   if (!tile || tile.type !== 'simple') return;
@@ -1281,20 +1436,32 @@ function combine(fromId, toId) {
 
 /* ---- Current expression string from tiles ---- */
 function currentExprStr() {
-  return tiles.map((t, i) => {
-    if (t.type === 'mul') {
-      const l = (t.left >= 0 && i > 0) ? '+' + t.left : String(t.left);
-      if (t.rightFrac) return `${l}${t.op}(${t.rightFrac.num}/${t.rightFrac.den})`;
-      return `${l}${t.op}(${t.right})`;
+  const parts = [];
+  let i = 0;
+  while (i < tiles.length) {
+    const t = tiles[i];
+    if (t.type === 'sign') {
+      const next = tiles[i + 1];
+      if (next && next.type === 'simple') {
+        const valStr = next.value >= 0 ? `+${next.value}` : String(next.value);
+        parts.push(`${t.op}(${valStr})`);
+        i += 2; continue;
+      }
+      parts.push(t.op);
+    } else if (t.type === 'mul') {
+      const l = parts.length === 0 ? String(t.left) : (t.left >= 0 ? '+' + t.left : String(t.left));
+      if (t.rightFrac) parts.push(`${l}${t.op}(${t.rightFrac.num}/${t.rightFrac.den})`);
+      else parts.push(`${l}${t.op}(${t.right})`);
+    } else if (t.type === 'pow') {
+      const baseStr = t.base < 0 ? `(${t.base})` : (parts.length === 0 ? String(t.base) : '+' + t.base);
+      parts.push(`${baseStr}^${t.exp}`);
+    } else { // simple
+      if (parts.length === 0) parts.push(String(t.value));
+      else parts.push(t.value >= 0 ? `+${t.value}` : String(t.value));
     }
-    if (t.type === 'pow') {
-      const baseStr = t.base < 0 ? `(${t.base})` : (i > 0 ? '+' + t.base : String(t.base));
-      return `${baseStr}^${t.exp}`;
-    }
-    if (i === 0) return String(t.value);
-    if (t.value >= 0) return '+' + t.value;
-    return String(t.value);
-  }).join('');
+    i++;
+  }
+  return parts.join('');
 }
 
 /* ---- Step log (途中式) ---- */
@@ -1371,6 +1538,25 @@ function generateProblem() {
       }
       return (t.value > 0 && i > 0) ? '+' + t.value : String(t.value);
     }).join('');
+  }
+
+  // ~20% chance: 符号問題（単独の＋/−と括弧の中の数）
+  if (Math.random() < 0.20) {
+    // パターン例: -(−4)+3, 5-(-4), -(+3)-(-2), 2+(+(-5))
+    const patterns = [
+      // -(負の数) + 整数
+      () => { const v = -randInt(1,9); const s = randNonZero(-9,9); return `-(${v})+${s >= 0 ? s : s}`; },
+      // 整数 - (負の数)
+      () => { const s = randNonZero(-9,9); const v = -randInt(1,9); return `${s}-(${v})`; },
+      // -(正の数) + 整数
+      () => { const v = randInt(2,9); const s = randNonZero(-9,9); return `-(+${v})+${s >= 0 ? s : s}`; },
+      // 整数 - (正の数) (= 整数 + 負の整数)
+      () => { const s = randNonZero(-9,9); const v = randInt(2,9); return `${s}-(+${v})`; },
+      // -(負) + -(負)
+      () => { const v1 = -randInt(1,9); const v2 = -randInt(1,9); const s = randNonZero(-9,9); return `-(${v1})-(${v2})+${s}`; },
+    ];
+    const fn = patterns[Math.floor(Math.random() * patterns.length)];
+    return fn();
   }
 
   // ~35% chance: fraction mul/div problem
