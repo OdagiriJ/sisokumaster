@@ -1400,28 +1400,31 @@ function combine(fromId, toId) {
   const keepIdx   = Math.min(fromIdx, toIdx);
   const removeIdx = Math.max(fromIdx, toIdx);
 
-  // ---- 和が０ → 一瞬表示してフェード消滅、途中式には残さない ----
+  // ---- 和が０ ----
   if (newVal === 0) {
     tiles[keepIdx] = { id: newId, type: 'simple', value: 0 };
     tiles.splice(removeIdx, 1);
-    render(newId); // pop-in で +0 タイル表示
+    render(newId); // pop-in で 0 タイル表示
 
-    // pop-in 終了後（420ms）にフェードアウト開始
+    // ★ 最終答えが 0（これ以上タイルがない）→ 消滅させず win へ
+    if (tiles.length === 1) {
+      addIntermediate();
+      setTimeout(() => showWin(0, stepCount), 600);
+      return;
+    }
+
+    // 途中で 0 になった場合 → 一瞬表示してフェード消滅、途中式には残さない
     setTimeout(() => {
       const zeroEl = document.querySelector(`.tile[data-id="${newId}"]`);
       if (zeroEl) zeroEl.classList.add('zero-vanish');
     }, 420);
 
-    // フェード完了後（~1s）にタイル消去・再描画
     setTimeout(() => {
       const idx = tiles.findIndex(t => t.id === newId);
       if (idx === -1) return; // undo済みの場合は何もしない
       tiles.splice(idx, 1);
       render();
-      if (tiles.length === 0) {
-        // 式全体が 0 になった
-        setTimeout(() => showWin(0, stepCount), 550);
-      } else if (tiles.length === 1 && tiles[0].type === 'simple') {
+      if (tiles.length === 1 && tiles[0].type === 'simple') {
         setTimeout(() => showWin(tiles[0].value, stepCount), 550);
       }
     }, 1000);
