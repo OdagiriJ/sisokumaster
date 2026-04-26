@@ -792,7 +792,7 @@ function createMulSubEls(tile, isNew) {
     }
     const t = tiles.find(x => x.id === tile.id);
     if (t?.rightFrac) {
-      animateFractionResolve(tile.id, () => resolveMul(tile.id));
+      animateFractionResolve(tile.id);
     } else {
       resolveMul(tile.id);
     }
@@ -855,25 +855,25 @@ function showTooltip(anchorEl, message) {
 }
 
 /* ---- Fraction slash animation ---- */
-function animateFractionResolve(tileId, callback) {
+function animateFractionResolve(tileId) {
   const tile = tiles.find(t => t.id === tileId);
-  if (!tile?.rightFrac) { callback(); return; }
+  if (!tile?.rightFrac) { resolveMul(tileId); return; }
 
   const leftEl  = document.querySelector(`.tile.mul-sub[data-mulid="${tileId}"][data-mulpart="left"]`);
   const rightEl = document.querySelector(`.tile.mul-sub[data-mulid="${tileId}"][data-mulpart="right"]`);
-  if (!leftEl || !rightEl) { callback(); return; }
+  if (!leftEl || !rightEl) { resolveMul(tileId); return; }
 
   function gcd(a, b) { return b === 0 ? Math.abs(a) : gcd(b, a % b); }
   const g           = gcd(Math.abs(tile.left), tile.rightFrac.den);
-  const leftReduced = tile.left / g;          // integer after cancel
-  const numVal      = tile.rightFrac.num;     // numerator stays
+  const leftReduced = tile.left / g;
+  const numVal      = tile.rightFrac.num;
 
-  // Place a slash overlay over an element
-  function addSlash(el) {
+  // Slash overlay centered on a specific element, with optional padding
+  function addSlash(el, pad = 10) {
     const r = el.getBoundingClientRect();
     const wrap = document.createElement('div');
     wrap.className = 'slash-overlay';
-    wrap.style.cssText = `left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;`;
+    wrap.style.cssText = `left:${r.left - pad}px;top:${r.top - pad}px;width:${r.width + pad * 2}px;height:${r.height + pad * 2}px;`;
     const line = document.createElement('div');
     line.className = 'slash-line';
     wrap.appendChild(line);
@@ -881,37 +881,45 @@ function animateFractionResolve(tileId, callback) {
     return wrap;
   }
 
-  // Phase 1: slash left tile + denominator simultaneously
   const denEl = rightEl.querySelector('.frac-den');
-  const numEl = rightEl.querySelector('.frac-num');
-  const s1 = addSlash(leftEl);
-  const s2 = addSlash(denEl || rightEl);
 
-  // dim slashed parts
-  leftEl.style.transition = 'opacity 0.2s 0.1s';
-  leftEl.style.opacity    = '0.25';
-  if (denEl) { denEl.style.transition = 'opacity 0.2s 0.1s'; denEl.style.opacity = '0.2'; }
+  // Phase 1: slash precisely on the cancelling numbers
+  const s1 = addSlash(leftEl, 8);              // slash on left integer tile
+  const s2 = addSlash(denEl || rightEl, 14);   // slash on denominator (extra pad for small element)
 
-  // Phase 2 (350ms): remove slash, show reduced values
+  // dim the slashed numbers
+  leftEl.style.transition = 'opacity 0.2s 0.12s';
+  leftEl.style.opacity    = '0.2';
+  if (denEl) { denEl.style.transition = 'opacity 0.2s 0.12s'; denEl.style.opacity = '0.1'; }
+
+  // Phase 2 (380ms): slashes fade → show reduced values
   setTimeout(() => {
     s1.remove(); s2.remove();
     leftEl.style.opacity = ''; leftEl.style.transition = '';
     if (denEl) { denEl.style.opacity = ''; denEl.style.transition = ''; }
 
-    // Update left tile to reduced value
+    // Update left tile display to reduced value
     leftEl.textContent = leftReduced >= 0 ? '+' + leftReduced : String(leftReduced);
     leftEl.classList.remove('reduced-pop'); void leftEl.offsetWidth; leftEl.classList.add('reduced-pop');
 
-    // Update fraction: denominator becomes 1, show numerator only
+    // Update right tile: show numerator only (denominator = 1 now)
     rightEl.innerHTML = '';
-    const label = document.createElement('span');
-    label.textContent = numVal >= 0 ? '+' + numVal : String(numVal);
-    rightEl.appendChild(label);
+    const numLabel = document.createElement('span');
+    numLabel.textContent = numVal >= 0 ? '+' + numVal : String(numVal);
+    rightEl.appendChild(numLabel);
     rightEl.classList.remove('reduced-pop'); void rightEl.offsetWidth; rightEl.classList.add('reduced-pop');
-  }, 360);
+  }, 380);
 
-  // Phase 3 (750ms): actual resolve with normal pop-in
-  setTimeout(callback, 750);
+  // Phase 3 (800ms): commit reduced state to data, re-render with × still visible
+  setTimeout(() => {
+    const idx = tiles.findIndex(t => t.id === tileId);
+    if (idx === -1) return;
+    // Convert fraction mul → regular mul (leftReduced × numVal), keep same id
+    tiles[idx] = { id: tile.id, type: 'mul', op: '×', left: leftReduced, right: numVal, revealed: true };
+    stepCount++;
+    addIntermediate();
+    render(); // × connector still shows → user clicks again to finish
+  }, 800);
 }
 
 function resolveMul(tileId) {
