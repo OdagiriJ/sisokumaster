@@ -1055,12 +1055,7 @@ function onMulPartPointerDown(e) {
   if (!tile) return;
 
   // Shake both parts together
-  document.querySelectorAll(`.tile.mul-sub[data-mulid="${mulId}"]`).forEach(el => {
-    el.classList.remove('shaking');
-    void el.offsetWidth;
-    el.classList.add('shaking');
-    setTimeout(() => el.classList.remove('shaking'), 500);
-  });
+  document.querySelectorAll(`.tile.mul-sub[data-mulid="${mulId}"]`).forEach(el => shakeEl(el));
 
   const tip = tile.op === '÷' ? '⚡ まずはわり算処理しよう！（「÷」をクリック）' : '⚡ まずはかけ算処理しよう！（「×」をクリック）';
   showTooltip(e.currentTarget, tip);
@@ -1071,6 +1066,13 @@ function onMulPartPointerDown(e) {
     document.querySelectorAll(`.tile.mul-sub[data-mulid="${mulId}"]`)
       .forEach(el => el.classList.add('mul-revealed'));
   }
+}
+
+function shakeEl(el) {
+  el.classList.remove('shaking');
+  void el.offsetWidth;
+  el.classList.add('shaking');
+  setTimeout(() => el.classList.remove('shaking'), 500);
 }
 
 function showTooltip(anchorEl, message) {
@@ -1286,6 +1288,7 @@ function onPointerDown(e) {
   const el = e.currentTarget;
 
   if (tiles.some(t => t.type === 'pow')) {
+    shakeEl(el);
     showTooltip(el, '⚡ まず累乗を処理しよう！');
     return;
   }
@@ -1295,11 +1298,13 @@ function onPointerDown(e) {
     const tip = mulTile.op === '÷'
       ? '⚡ まずはわり算処理しよう！（「÷」をクリック）'
       : '⚡ まずはかけ算処理しよう！（「×」をクリック）';
+    shakeEl(el);
     showTooltip(el, tip);
     return;
   }
 
   if (tiles.some(t => t.type === 'sign')) {
+    shakeEl(el);
     showTooltip(el, '⚡ （　）の左にある ＋ / − をクリックして符号を統合しよう！');
     return;
   }
