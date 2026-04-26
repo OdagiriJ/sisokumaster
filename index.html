@@ -453,6 +453,42 @@
     .tile.pow-tile { cursor: default; }
     .tile.pow-tile:hover { transform: none; }
 
+    /* Fraction slash animation */
+    .slash-overlay {
+      position: fixed;
+      pointer-events: none;
+      z-index: 500;
+      overflow: hidden;
+    }
+
+    @keyframes slash-draw {
+      0%   { transform: rotate(-38deg) scaleX(0); opacity: 1; }
+      55%  { transform: rotate(-38deg) scaleX(1); opacity: 1; }
+      100% { transform: rotate(-38deg) scaleX(1); opacity: 0; }
+    }
+
+    .slash-line {
+      position: absolute;
+      top: 50%;
+      left: -15%;
+      width: 130%;
+      height: 5px;
+      margin-top: -2.5px;
+      background: linear-gradient(90deg, transparent, #fff 15%, #fff 85%, transparent);
+      transform-origin: left center;
+      border-radius: 3px;
+      box-shadow: 0 0 12px 3px rgba(255,255,255,0.85);
+      animation: slash-draw 0.42s cubic-bezier(0.15,0,0.3,1) forwards;
+    }
+
+    @keyframes reduced-pop {
+      0%   { transform: scale(0.5); opacity: 0; }
+      60%  { transform: scale(1.15); opacity: 1; }
+      100% { transform: scale(1);   opacity: 1; }
+    }
+
+    .reduced-pop { animation: reduced-pop 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+
     /* Fraction display inside tile */
     .frac-display {
       display: flex;
@@ -754,7 +790,12 @@ function createMulSubEls(tile, isNew) {
       showTooltip(connEl, '⚡ まず累乗を処理しよう！');
       return;
     }
-    resolveMul(tile.id);
+    const t = tiles.find(x => x.id === tile.id);
+    if (t?.rightFrac) {
+      animateFractionResolve(tile.id, () => resolveMul(tile.id));
+    } else {
+      resolveMul(tile.id);
+    }
   });
 
   return [leftEl, connEl, rightEl];
@@ -811,6 +852,66 @@ function showTooltip(anchorEl, message) {
   tip.style.top  = top  + 'px';
 
   setTimeout(() => { if (tip.parentNode) tip.remove(); }, 2400);
+}
+
+/* ---- Fraction slash animation ---- */
+function animateFractionResolve(tileId, callback) {
+  const tile = tiles.find(t => t.id === tileId);
+  if (!tile?.rightFrac) { callback(); return; }
+
+  const leftEl  = document.querySelector(`.tile.mul-sub[data-mulid="${tileId}"][data-mulpart="left"]`);
+  const rightEl = document.querySelector(`.tile.mul-sub[data-mulid="${tileId}"][data-mulpart="right"]`);
+  if (!leftEl || !rightEl) { callback(); return; }
+
+  function gcd(a, b) { return b === 0 ? Math.abs(a) : gcd(b, a % b); }
+  const g           = gcd(Math.abs(tile.left), tile.rightFrac.den);
+  const leftReduced = tile.left / g;          // integer after cancel
+  const numVal      = tile.rightFrac.num;     // numerator stays
+
+  // Place a slash overlay over an element
+  function addSlash(el) {
+    const r = el.getBoundingClientRect();
+    const wrap = document.createElement('div');
+    wrap.className = 'slash-overlay';
+    wrap.style.cssText = `left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;`;
+    const line = document.createElement('div');
+    line.className = 'slash-line';
+    wrap.appendChild(line);
+    document.body.appendChild(wrap);
+    return wrap;
+  }
+
+  // Phase 1: slash left tile + denominator simultaneously
+  const denEl = rightEl.querySelector('.frac-den');
+  const numEl = rightEl.querySelector('.frac-num');
+  const s1 = addSlash(leftEl);
+  const s2 = addSlash(denEl || rightEl);
+
+  // dim slashed parts
+  leftEl.style.transition = 'opacity 0.2s 0.1s';
+  leftEl.style.opacity    = '0.25';
+  if (denEl) { denEl.style.transition = 'opacity 0.2s 0.1s'; denEl.style.opacity = '0.2'; }
+
+  // Phase 2 (350ms): remove slash, show reduced values
+  setTimeout(() => {
+    s1.remove(); s2.remove();
+    leftEl.style.opacity = ''; leftEl.style.transition = '';
+    if (denEl) { denEl.style.opacity = ''; denEl.style.transition = ''; }
+
+    // Update left tile to reduced value
+    leftEl.textContent = leftReduced >= 0 ? '+' + leftReduced : String(leftReduced);
+    leftEl.classList.remove('reduced-pop'); void leftEl.offsetWidth; leftEl.classList.add('reduced-pop');
+
+    // Update fraction: denominator becomes 1, show numerator only
+    rightEl.innerHTML = '';
+    const label = document.createElement('span');
+    label.textContent = numVal >= 0 ? '+' + numVal : String(numVal);
+    rightEl.appendChild(label);
+    rightEl.classList.remove('reduced-pop'); void rightEl.offsetWidth; rightEl.classList.add('reduced-pop');
+  }, 360);
+
+  // Phase 3 (750ms): actual resolve with normal pop-in
+  setTimeout(callback, 750);
 }
 
 function resolveMul(tileId) {
