@@ -510,6 +510,16 @@
       animation: slash-draw 0.42s cubic-bezier(0.15,0,0.3,1) forwards;
     }
 
+    /* 和が０になったとき：一瞬出てフェード消滅 */
+    @keyframes zero-vanish {
+      0%   { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(0.12) rotate(25deg); opacity: 0; }
+    }
+    .tile.zero-vanish {
+      animation: zero-vanish 0.55s cubic-bezier(0.4, 0, 1, 1) forwards;
+      pointer-events: none;
+    }
+
     @keyframes reduced-pop {
       0%   { transform: scale(0.5); opacity: 0; }
       60%  { transform: scale(1.15); opacity: 1; }
@@ -1226,9 +1236,38 @@ function combine(fromId, toId) {
   const newId  = idCtr++;
   stepCount++;
 
-  // Keep result at the left-most of the two positions
   const keepIdx   = Math.min(fromIdx, toIdx);
   const removeIdx = Math.max(fromIdx, toIdx);
+
+  // ---- 和が０ → 一瞬表示してフェード消滅、途中式には残さない ----
+  if (newVal === 0) {
+    tiles[keepIdx] = { id: newId, type: 'simple', value: 0 };
+    tiles.splice(removeIdx, 1);
+    render(newId); // pop-in で +0 タイル表示
+
+    // pop-in 終了後（420ms）にフェードアウト開始
+    setTimeout(() => {
+      const zeroEl = document.querySelector(`.tile[data-id="${newId}"]`);
+      if (zeroEl) zeroEl.classList.add('zero-vanish');
+    }, 420);
+
+    // フェード完了後（~1s）にタイル消去・再描画
+    setTimeout(() => {
+      const idx = tiles.findIndex(t => t.id === newId);
+      if (idx === -1) return; // undo済みの場合は何もしない
+      tiles.splice(idx, 1);
+      render();
+      if (tiles.length === 0) {
+        // 式全体が 0 になった
+        setTimeout(() => showWin(0, stepCount), 550);
+      } else if (tiles.length === 1 && tiles[0].type === 'simple') {
+        setTimeout(() => showWin(tiles[0].value, stepCount), 550);
+      }
+    }, 1000);
+    return;
+  }
+
+  // ---- 通常の合体 ----
   tiles[keepIdx] = { id: newId, type: 'simple', value: newVal };
   tiles.splice(removeIdx, 1);
 
