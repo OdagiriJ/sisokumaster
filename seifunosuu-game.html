@@ -1529,8 +1529,11 @@ function generateProblem() {
     const simCount = randInt(1, Math.max(1, 4 - powCount - 1));
     const terms = [];
     for (let i = 0; i < powCount; i++) {
-      const base = randNonZero(-4, 4);
       const exp  = Math.random() < 0.5 ? 2 : 3;
+      // 指数が3のときは底を2か3に限定
+      const base = exp === 3
+        ? (Math.random() < 0.5 ? 2 : 3)
+        : randNonZero(-4, 4);
       terms.push({ type: 'pow', base, exp });
     }
     for (let i = 0; i < simCount; i++) {
