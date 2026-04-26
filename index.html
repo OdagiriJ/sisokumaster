@@ -1033,6 +1033,15 @@ function onPointerDown(e) {
     return;
   }
 
+  if (tiles.some(t => t.type === 'mul')) {
+    const mulTile = tiles.find(t => t.type === 'mul');
+    const tip = mulTile.op === '÷'
+      ? '⚡ まずはわり算処理しよう！（「÷」をクリック）'
+      : '⚡ まずはかけ算処理しよう！（「×」をクリック）';
+    showTooltip(el, tip);
+    return;
+  }
+
   dragId = parseInt(el.dataset.id);
   const tile = tiles.find(t => t.id === dragId);
   if (!tile || tile.type !== 'simple') return;
