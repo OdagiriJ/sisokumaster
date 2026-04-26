@@ -868,14 +868,19 @@ function animateFractionResolve(tileId) {
   const leftReduced = tile.left / g;
   const numVal      = tile.rightFrac.num;
 
-  // Slash overlay centered on a specific element, with optional padding
-  function addSlash(el, pad = 10) {
-    const r = el.getBoundingClientRect();
+  // Slash overlay: covers `coverEl`, but the line passes through the center of `targetEl`
+  function addSlash(coverEl, targetEl, pad = 8) {
+    const cr = coverEl.getBoundingClientRect();
+    const tr = targetEl.getBoundingClientRect();
     const wrap = document.createElement('div');
     wrap.className = 'slash-overlay';
-    wrap.style.cssText = `left:${r.left - pad}px;top:${r.top - pad}px;width:${r.width + pad * 2}px;height:${r.height + pad * 2}px;`;
+    wrap.style.cssText = `left:${cr.left - pad}px;top:${cr.top - pad}px;width:${cr.width + pad * 2}px;height:${cr.height + pad * 2}px;`;
     const line = document.createElement('div');
     line.className = 'slash-line';
+    // Vertical position of line = center of targetEl relative to overlay top
+    const lineCenterY = (tr.top + tr.height / 2) - (cr.top - pad);
+    line.style.top = lineCenterY + 'px';
+    line.style.marginTop = '-2.5px';
     wrap.appendChild(line);
     document.body.appendChild(wrap);
     return wrap;
@@ -883,9 +888,9 @@ function animateFractionResolve(tileId) {
 
   const denEl = rightEl.querySelector('.frac-den');
 
-  // Phase 1: slash precisely on the cancelling numbers
-  const s1 = addSlash(leftEl, 8);              // slash on left integer tile
-  const s2 = addSlash(denEl || rightEl, 14);   // slash on denominator (extra pad for small element)
+  // Phase 1: left tile → line at card center / fraction card → line at denominator position
+  const s1 = addSlash(leftEl, leftEl, 8);           // slash centered on integer card
+  const s2 = addSlash(rightEl, denEl || rightEl, 8); // slash covers fraction card, hits denominator
 
   // dim the slashed numbers
   leftEl.style.transition = 'opacity 0.2s 0.12s';
