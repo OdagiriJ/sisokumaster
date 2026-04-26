@@ -358,6 +358,25 @@
     .win-btn-main { background: #7c3aed; color: white; }
     .win-btn-sub  { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
 
+    /* Undo button */
+    .btn-undo {
+      background: var(--surface);
+      color: #94a3b8;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 8px 20px;
+      font-size: 0.9em;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-undo:hover:not(:disabled) {
+      background: #334155;
+      color: white;
+      border-color: #94a3b8;
+    }
+    .btn-undo:disabled { cursor: default; }
+
     /* ---- Mul sub-tiles (look normal initially) ---- */
     .tile.mul-sub.mul-highlighted,
     .tile.mul-sub.mul-revealed {
@@ -543,6 +562,9 @@
   <div class="expr-display" id="expr-display"></div>
   <div class="game-area" id="game-area"></div>
   <p class="remaining" id="remaining"></p>
+  <div style="text-align:center">
+    <button class="btn-undo" id="undo-btn" onclick="undoStep()" disabled>↩ １つ前に戻る</button>
+  </div>
 
   <div class="panel">
     <div class="panel-title">途中式</div>
@@ -557,6 +579,33 @@ let idCtr = 0;
 let dragId = null;
 let ghostEl = null;
 let stepCount = 0;
+let history = [];  // undo stack
+
+function pushHistory() {
+  history.push({
+    tiles:      JSON.parse(JSON.stringify(tiles)),
+    stepCount:  stepCount,
+    stepsHTML:  document.getElementById('steps-list').innerHTML
+  });
+  updateUndoBtn();
+}
+
+function undoStep() {
+  if (history.length === 0) return;
+  const snap = history.pop();
+  tiles     = snap.tiles;
+  stepCount = snap.stepCount;
+  document.getElementById('steps-list').innerHTML = snap.stepsHTML;
+  render();
+  updateUndoBtn();
+}
+
+function updateUndoBtn() {
+  const btn = document.getElementById('undo-btn');
+  if (!btn) return;
+  btn.disabled     = history.length === 0;
+  btn.style.opacity = history.length === 0 ? '0.35' : '1';
+}
 
 /* ---- Parse ----
  * Returns array of:
@@ -633,6 +682,8 @@ function startGame() {
     return { id: idCtr++, type: 'simple', value: t.value };
   });
   stepCount = 0;
+  history   = [];
+  updateUndoBtn();
 
   const exprStr = formatExprDisplay(terms);
   document.getElementById('steps-list').innerHTML = '';
@@ -738,6 +789,7 @@ function resolvePow(tileId) {
   const idx = tiles.findIndex(t => t.id === tileId);
   if (idx === -1 || tiles[idx].type !== 'pow') return;
   const tile = tiles[idx];
+  pushHistory();
   const result = Math.pow(tile.base, tile.exp);
   const newId = idCtr++;
   stepCount++;
@@ -862,6 +914,7 @@ function animateFractionResolve(tileId) {
   const leftEl  = document.querySelector(`.tile.mul-sub[data-mulid="${tileId}"][data-mulpart="left"]`);
   const rightEl = document.querySelector(`.tile.mul-sub[data-mulid="${tileId}"][data-mulpart="right"]`);
   if (!leftEl || !rightEl) { resolveMul(tileId); return; }
+  pushHistory();
 
   function gcd(a, b) { return b === 0 ? Math.abs(a) : gcd(b, a % b); }
   const g           = gcd(Math.abs(tile.left), tile.rightFrac.den);
@@ -949,6 +1002,7 @@ function resolveMul(tileId) {
   const idx = tiles.findIndex(t => t.id === tileId);
   if (idx === -1 || tiles[idx].type !== 'mul') return;
   const tile = tiles[idx];
+  pushHistory();
 
   const result = tile.rightFrac
     ? tile.left * tile.rightFrac.num / tile.rightFrac.den
@@ -1060,7 +1114,8 @@ function tileUnderPoint(x, y) {
 
 /* ---- Combine (addition) ---- */
 function combine(fromId, toId) {
-  purgeGhost(); // safety: remove any lingering ghost before mutating state
+  purgeGhost();
+  pushHistory();
   const fromIdx = tiles.findIndex(t => t.id === fromId);
   const toIdx   = tiles.findIndex(t => t.id === toId);
   if (fromIdx === -1 || toIdx === -1) return;
