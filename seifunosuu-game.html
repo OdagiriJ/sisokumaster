@@ -1288,23 +1288,38 @@ function onPointerDown(e) {
   const el = e.currentTarget;
 
   if (tiles.some(t => t.type === 'pow')) {
-    shakeEl(el);
+    // 処理すべき累乗タイルを揺らす
+    tiles.filter(t => t.type === 'pow').forEach(t => {
+      const powEl = document.querySelector(`.tile[data-id="${t.id}"]`);
+      if (powEl) shakeEl(powEl);
+    });
     showTooltip(el, '⚡ まず累乗を処理しよう！');
     return;
   }
 
   if (tiles.some(t => t.type === 'mul')) {
     const mulTile = tiles.find(t => t.type === 'mul');
+    // 処理すべきかけ算・わり算タイルの両サブタイルを揺らす
+    document.querySelectorAll(`.tile.mul-sub[data-mulid="${mulTile.id}"]`).forEach(e => shakeEl(e));
     const tip = mulTile.op === '÷'
       ? '⚡ まずはわり算処理しよう！（「÷」をクリック）'
       : '⚡ まずはかけ算処理しよう！（「×」をクリック）';
-    shakeEl(el);
     showTooltip(el, tip);
     return;
   }
 
   if (tiles.some(t => t.type === 'sign')) {
-    shakeEl(el);
+    // 処理すべき符号タイルとその隣の値タイルを揺らす
+    tiles.filter(t => t.type === 'sign').forEach(t => {
+      const signEl = document.querySelector(`.sign-tile-btn[data-id="${t.id}"]`);
+      if (signEl) shakeEl(signEl);
+      const signIdx = tiles.findIndex(x => x.id === t.id);
+      const valTile = tiles[signIdx + 1];
+      if (valTile) {
+        const valEl = document.querySelector(`.tile[data-id="${valTile.id}"]`);
+        if (valEl) shakeEl(valEl);
+      }
+    });
     showTooltip(el, '⚡ （　）の左にある ＋ / − をクリックして符号を統合しよう！');
     return;
   }
