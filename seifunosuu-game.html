@@ -826,7 +826,7 @@ function render(newId = null) {
   } else if (mulCount > 0 && tiles.some(t => t.type === 'mul' && t.revealed)) {
     rem.innerHTML = `<b style="color:#fbbf24">×</b> ボタンを押してかけ算を解決しよう！`;
   } else if (signCount > 0) {
-    rem.innerHTML = `<b style="color:#f59e0b">（　）</b> の左にある <b style="color:#f59e0b">＋ / −</b> をクリックして符号を統合しよう！`;
+    rem.innerHTML = `カード間の <b style="color:#f59e0b">＋ / −</b> をクリックして符号を統合しよう！`;
   } else if (simCount > 1 || (simCount >= 1 && mulCount === 0)) {
     rem.innerHTML = simCount > 1
       ? `残り <b>${simCount}</b> 項 — あと <b>${simCount - 1}</b> 回合体できます`
@@ -1300,7 +1300,7 @@ function onPointerDown(e) {
   }
 
   if (tiles.some(t => t.type === 'sign')) {
-    showTooltip(el, '⚡ まず符号（＋/−）をクリックして統合しよう！');
+    showTooltip(el, '⚡ カード間の＋ / − をクリックして符号を統合しよう！');
     return;
   }
 
