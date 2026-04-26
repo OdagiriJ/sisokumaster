@@ -868,19 +868,37 @@ function animateFractionResolve(tileId) {
   const leftReduced = tile.left / g;
   const numVal      = tile.rightFrac.num;
 
-  // Slash overlay: covers `coverEl`, but the line passes through the center of `targetEl`
+  // Slash overlay: covers `coverEl`, line geometrically passes through center of `targetEl`.
+  // The slash-line rotates -38deg around its left end (transform-origin: left center).
+  // For the line to cross point (tx, ty) in overlay coords:
+  //   ty = lineTop - (tx - lineLeftX) * tan(38deg)
+  //   → lineTop = ty + (tx - lineLeftX) * tan(38deg)
   function addSlash(coverEl, targetEl, pad = 8) {
     const cr = coverEl.getBoundingClientRect();
     const tr = targetEl.getBoundingClientRect();
+    const oW = cr.width  + pad * 2;
+    const oH = cr.height + pad * 2;
+
     const wrap = document.createElement('div');
     wrap.className = 'slash-overlay';
-    wrap.style.cssText = `left:${cr.left - pad}px;top:${cr.top - pad}px;width:${cr.width + pad * 2}px;height:${cr.height + pad * 2}px;`;
+    wrap.style.cssText = `left:${cr.left - pad}px;top:${cr.top - pad}px;width:${oW}px;height:${oH}px;`;
+
     const line = document.createElement('div');
     line.className = 'slash-line';
-    // Vertical position of line = center of targetEl relative to overlay top
-    const lineCenterY = (tr.top + tr.height / 2) - (cr.top - pad);
-    line.style.top = lineCenterY + 'px';
-    line.style.marginTop = '-2.5px';
+
+    // Target center in overlay coords
+    const tx = (tr.left + tr.width  / 2) - (cr.left - pad);
+    const ty = (tr.top  + tr.height / 2) - (cr.top  - pad);
+
+    // Left end of slash-line in overlay coords (CSS: left: -15%)
+    const lineLeftX = -0.15 * oW;
+    const tan38 = Math.tan(38 * Math.PI / 180); // ≈ 0.781
+
+    // lineTop so the "/" line passes through (tx, ty)
+    const lineTop = ty + (tx - lineLeftX) * tan38;
+
+    line.style.top      = lineTop + 'px';
+    line.style.marginTop = '0';
     wrap.appendChild(line);
     document.body.appendChild(wrap);
     return wrap;
