@@ -784,8 +784,9 @@ function formatExprDisplay(terms) {
       if (t.rightFrac) parts.push(`${l}${t.op}(${t.rightFrac.num}/${t.rightFrac.den})`);
       else parts.push(`${l}${t.op || '×'}(${t.right})`);
     } else if (t.type === 'pow') {
-      const baseStr = t.base < 0 ? `(${t.base})` : (parts.length === 0 ? String(t.base) : '+' + t.base);
-      parts.push(`${baseStr}^${t.exp}`);
+      const baseStr = t.base < 0 ? `(${t.base})` : String(t.base);
+      // 式の途中に ( ) が来る場合は必ず前に演算子を付ける
+      parts.push(parts.length === 0 ? `${baseStr}^${t.exp}` : `+${baseStr}^${t.exp}`);
     } else { // simple
       if (parts.length === 0) parts.push(String(t.value));
       else parts.push(t.value >= 0 ? `+${t.value}` : String(t.value));
@@ -1453,8 +1454,8 @@ function currentExprStr() {
       if (t.rightFrac) parts.push(`${l}${t.op}(${t.rightFrac.num}/${t.rightFrac.den})`);
       else parts.push(`${l}${t.op}(${t.right})`);
     } else if (t.type === 'pow') {
-      const baseStr = t.base < 0 ? `(${t.base})` : (parts.length === 0 ? String(t.base) : '+' + t.base);
-      parts.push(`${baseStr}^${t.exp}`);
+      const baseStr = t.base < 0 ? `(${t.base})` : String(t.base);
+      parts.push(parts.length === 0 ? `${baseStr}^${t.exp}` : `+${baseStr}^${t.exp}`);
     } else { // simple
       if (parts.length === 0) parts.push(String(t.value));
       else parts.push(t.value >= 0 ? `+${t.value}` : String(t.value));
@@ -1533,8 +1534,9 @@ function generateProblem() {
     }
     return terms.map((t, i) => {
       if (t.type === 'pow') {
-        const baseStr = t.base < 0 ? `(${t.base})` : (i > 0 ? '+' + t.base : String(t.base));
-        return `${baseStr}^${t.exp}`;
+        const baseStr = t.base < 0 ? `(${t.base})` : String(t.base);
+        // 式の途中（i>0）では必ず + を付けて ( )( ) の連続を防ぐ
+        return i === 0 ? `${baseStr}^${t.exp}` : `+${baseStr}^${t.exp}`;
       }
       return (t.value > 0 && i > 0) ? '+' + t.value : String(t.value);
     }).join('');
