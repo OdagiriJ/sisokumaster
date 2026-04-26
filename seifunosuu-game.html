@@ -1029,9 +1029,11 @@ function createMulSubEls(tile, isNew) {
     }
     const t = tiles.find(x => x.id === tile.id);
     if (t?.rightFrac && t?.op === '÷') {
-      animateDivFracToMul(tile.id);   // ÷(分数) → フリップ → ×(逆数) → 約分へ
+      animateDivFracToMul(tile.id);          // ÷(分数) → フリップ → ×(逆数) → 約分へ
+    } else if (t?.rightFrac && t.rightFrac.den === 1) {
+      resolveMul(tile.id);                   // 分母が1なら約分エフェクト不要・即計算
     } else if (t?.rightFrac) {
-      animateFractionResolve(tile.id);
+      animateFractionResolve(tile.id);       // 通常の分数かけ算（約分アニメあり）
     } else {
       resolveMul(tile.id);
     }
