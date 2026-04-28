@@ -3030,7 +3030,7 @@ function onPointerDown(e) {
   const simpleTargets = tiles.filter(t => t.type === 'simple' && t.id !== parseInt(el.dataset.id));
   if (simpleTargets.length === 0) {
     shakeEl(el);
-    showTooltip(el, '⚡ まだこのカードで足せる状態ではないよ');
+    showTooltip(el, '⚡ まだこの数の出番ではないよ');
     return;
   }
 
