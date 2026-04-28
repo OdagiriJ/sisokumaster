@@ -2303,7 +2303,6 @@ function createMulSubEls(tile, isNew) {
     }
     rightEl.addEventListener('click', e => {
       if (e.target === badge) return;
-      shakeEl(rightEl);
       showTooltip(rightEl, '⚡ 指数をクリックして累乗を先に計算しよう！');
     });
   } else {
@@ -2325,7 +2324,6 @@ function createMulSubEls(tile, isNew) {
   connEl.addEventListener('click', () => {
     const t = tiles.find(x => x.id === tile.id);
     if (t?.rightPow) {
-      shakeEl(rightEl);
       showTooltip(connEl, '⚡ 累乗を先に計算しよう！（指数をクリック）');
       return;
     }
