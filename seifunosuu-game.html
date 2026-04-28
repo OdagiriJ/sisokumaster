@@ -3005,7 +3005,7 @@ function onPointerDown(e) {
   const simpleTargets = tiles.filter(t => t.type === 'simple' && t.id !== parseInt(el.dataset.id));
   if (simpleTargets.length === 0) {
     shakeEl(el);
-    showTooltip(el, '⚡ 足せる相手がいません。演算記号や指数をクリックして先に計算しよう！');
+    showTooltip(el, '⚡ ×÷か累乗を計算しよう');
     return;
   }
 
