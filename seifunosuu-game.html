@@ -442,14 +442,6 @@
       box-shadow: 0 16px 48px rgba(0,0,0,0.55);
     }
 
-    /* Remaining counter */
-    .remaining {
-      text-align: center;
-      color: var(--subtle);
-      font-size: 0.88em;
-    }
-
-    .remaining b { color: var(--accent); }
 
     /* Number line */
     .panel {
@@ -908,8 +900,6 @@
       <button class="btn-undo" id="undo-btn" onclick="undoStep()" disabled>↩ １つ前に戻る</button>
     </div>
   </div>
-  <p class="remaining" id="remaining"></p>
-
   <div class="panel">
     <div class="panel-title">途中式</div>
     <div id="steps-list" class="step-chain"></div>
@@ -1321,24 +1311,6 @@ function render(newId = null) {
     }
   });
 
-  const rem = document.getElementById('remaining');
-  const mulCount    = tiles.filter(t => t.type === 'mul').length;
-  const powCount    = tiles.filter(t => t.type === 'pow').length;
-  const signCount   = tiles.filter(t => t.type === 'sign').length;
-  const simCount    = tiles.filter(t => t.type === 'simple').length;
-  const groupCount  = tiles.filter(t => (t.type === 'group_mul' || t.type === 'group_right') && t.innerTiles.length > 1).length;
-
-  if (groupCount > 0) {
-    rem.innerHTML = `<b style="color:#a78bfa">（　）</b> の中のカードを先にまとめよう！`;
-  } else if (powCount > 0) {
-    rem.innerHTML = `<b style="color:#c4b5fd">指数</b> をクリックして累乗を計算しよう！`;
-  } else if (mulCount > 0 && tiles.some(t => t.type === 'mul' && t.revealed)) {
-    rem.innerHTML = `<b style="color:#fbbf24">×</b> ボタンを押してかけ算を解決しよう！`;
-  } else if (signCount > 0) {
-    rem.innerHTML = `<b style="color:#f59e0b">（　）</b> の左にある <b style="color:#f59e0b">＋ / −</b> をクリックして符号を統合しよう！`;
-  } else {
-    rem.innerHTML = '';
-  }
 }
 
 /* ---- Group-mul tile element ---- */
