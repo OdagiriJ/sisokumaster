@@ -3001,6 +3001,14 @@ function onPointerDown(e) {
 
   const el = e.currentTarget;
 
+  // ドロップ相手となる simple タイルが他にない場合はドラッグ不可
+  const simpleTargets = tiles.filter(t => t.type === 'simple' && t.id !== parseInt(el.dataset.id));
+  if (simpleTargets.length === 0) {
+    shakeEl(el);
+    showTooltip(el, '⚡ 足せる相手がいません。演算記号や指数をクリックして先に計算しよう！');
+    return;
+  }
+
   if (tiles.some(t => (t.type === 'group_mul' || t.type === 'group_right') && t.innerTiles.length > 1)) {
     document.querySelectorAll('.inner-tile').forEach(e => shakeEl(e));
     showTooltip(el, '⚡ （　）の中を先に計算しよう！');
