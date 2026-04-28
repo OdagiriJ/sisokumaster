@@ -2413,6 +2413,11 @@ function showTooltip(anchorEl, message) {
   bar.textContent = message;
   bar.classList.add('active');
 
+  // 「指数」が含まれるヒントのとき → 指数バッジをシェイク
+  if (message.includes('指数')) {
+    document.querySelectorAll('.pow-exp-btn').forEach(el => shakeEl(el));
+  }
+
   clearTimeout(bar._hideTimer);
   bar._hideTimer = setTimeout(() => {
     bar.classList.remove('active');
