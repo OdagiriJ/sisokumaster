@@ -220,22 +220,39 @@
       background: var(--surface);
       border: 2px solid var(--border);
       border-radius: 20px;
-      padding-bottom: 52px; /* undoボタン・ツールチップ用の余白 */
     }
 
-    /* ツールチップ専用表示エリア（undoボタンと同じ高さ・左寄り） */
-    .tooltip-zone {
-      position: absolute;
-      bottom: 10px;
-      left: 16px;
-      right: 155px; /* undoボタンの幅分あける */
+    /* パネル下フッター行（ヒント＋undoボタン） */
+    .panel-footer {
       display: flex;
       align-items: center;
-      justify-content: flex-start;
-      pointer-events: none;
-      z-index: 25;
+      padding: 6px 10px;
+      min-height: 44px;
+      gap: 8px;
     }
-    .panel-wrap:has(.panel-hidden) .tooltip-zone { display: none; }
+    .panel-wrap:has(.panel-hidden) .panel-footer { display: none; }
+
+    /* ヒントバー（旧ツールチップの代替） */
+    .hint-bar {
+      flex: 1;
+      min-width: 0;
+      font-size: 0.85em;
+      font-weight: 700;
+      color: #fef3c7;
+      padding: 5px 12px;
+      border-radius: 10px;
+      border: 1.5px solid transparent;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hint-bar.active {
+      background: #1e293b;
+      border-color: #fbbf24;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+      animation: tooltip-in 0.18s ease;
+    }
 
     /* 表示/非表示トグルボタン */
     .panel-toggle-btn {
@@ -579,10 +596,7 @@
 
     /* Undo button */
     .btn-undo {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
-      z-index: 20;
+      flex-shrink: 0;
       background: rgba(30,41,59,0.85);
       color: #94a3b8;
       border: 1.5px solid var(--border);
@@ -592,6 +606,7 @@
       font-weight: 700;
       cursor: pointer;
       transition: all 0.15s;
+      white-space: nowrap;
     }
     .btn-undo:hover:not(:disabled) {
       background: #334155;
@@ -599,8 +614,6 @@
       border-color: #94a3b8;
     }
     .btn-undo:disabled { cursor: default; opacity: 0.45; }
-    /* パネル非表示時はボタンも隠す */
-    .panel-wrap:has(.panel-hidden) .btn-undo { display: none; }
 
     /* ---- Mul sub-tiles (look normal initially) ---- */
     .tile.mul-sub.mul-highlighted,
@@ -628,26 +641,8 @@
       transform: scale(1.2);
     }
 
-    /* Tooltip bubble */
-    .tooltip-bubble {
-      display: inline-block;
-      background: #1e293b;
-      border: 1.5px solid #fbbf24;
-      color: #fef3c7;
-      padding: 6px 14px;
-      border-radius: 10px;
-      font-size: 0.88em;
-      font-weight: 700;
-      white-space: normal;
-      max-width: 100%;
-      text-align: center;
-      pointer-events: none;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-      animation: tooltip-in 0.18s ease;
-    }
-
     @keyframes tooltip-in {
-      from { opacity: 0; transform: translateY(4px); }
+      from { opacity: 0; transform: translateY(3px); }
       to   { opacity: 1; transform: translateY(0); }
     }
 
@@ -886,8 +881,10 @@
   <div class="panel-wrap">
     <button class="panel-toggle-btn" id="panel-toggle-btn" onclick="togglePanel()">非表示</button>
     <div class="game-area" id="game-area"></div>
-    <div class="tooltip-zone" id="tooltip-zone"></div>
-    <button class="btn-undo" id="undo-btn" onclick="undoStep()" disabled>↩ １つ前に戻る</button>
+    <div class="panel-footer">
+      <div class="hint-bar" id="hint-bar"></div>
+      <button class="btn-undo" id="undo-btn" onclick="undoStep()" disabled>↩ １つ前に戻る</button>
+    </div>
   </div>
   <p class="hint">カードをドラッグして、別のカードの上でドロップ → 2項が足し合わされます</p>
   <p class="hint">演算記号や指数を押すと、その部分の計算がされます</p>
@@ -2390,18 +2387,17 @@ function shakeEl(el) {
 }
 
 function showTooltip(anchorEl, message) {
-  const zone = document.getElementById('tooltip-zone');
-  if (!zone) return;
+  const bar = document.getElementById('hint-bar');
+  if (!bar) return;
 
-  // 既存のツールチップをクリア
-  zone.innerHTML = '';
+  bar.textContent = message;
+  bar.classList.add('active');
 
-  const tip = document.createElement('span');
-  tip.className = 'tooltip-bubble';
-  tip.textContent = message;
-  zone.appendChild(tip);
-
-  setTimeout(() => { if (tip.parentNode) tip.remove(); }, 2400);
+  clearTimeout(bar._hideTimer);
+  bar._hideTimer = setTimeout(() => {
+    bar.classList.remove('active');
+    bar.textContent = '';
+  }, 2400);
 }
 
 /* ---- ÷(分数) → ×(逆数) フリップアニメーション ---- */
