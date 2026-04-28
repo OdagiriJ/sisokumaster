@@ -4182,18 +4182,24 @@ function updateGameTypeLabel(type) {
 }
 
 /* ---- パネル表示/非表示トグル ---- */
+let panelHidden = false; // 非表示状態を維持（問題をまたいで引き継ぐ）
+
 function togglePanel() {
+  panelHidden = !panelHidden;
+  applyPanelState();
+}
+
+function applyPanelState() {
   const area = document.getElementById('game-area');
   const btn  = document.getElementById('panel-toggle-btn');
-  const hide = area.classList.toggle('panel-hidden');
-  btn.textContent = hide ? '表示' : '非表示';
+  if (!area || !btn) return;
+  area.classList.toggle('panel-hidden', panelHidden);
+  btn.textContent = panelHidden ? '表示' : '非表示';
 }
 
 function showPanel() {
-  const area = document.getElementById('game-area');
-  const btn  = document.getElementById('panel-toggle-btn');
-  area.classList.remove('panel-hidden');
-  btn.textContent = '非表示';
+  // 呼び出し元はそのままにして、panelHidden 状態を尊重する
+  applyPanelState();
 }
 
 /* ---- 問題の最終答えを計算（答え範囲チェック用） ---- */
