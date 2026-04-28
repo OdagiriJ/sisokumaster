@@ -1426,7 +1426,8 @@ function createGroupMulEl(tile, isNew) {
   rightEl.addEventListener('click', () => {
     if (tile.innerTiles.length > 1 || tile.innerTiles.some(it => it.type !== 'simple')) {
       showTooltip(rightEl, '⚡ （　）の中を先に計算しよう！');
-      inner.querySelectorAll('.tile').forEach(e => shakeEl(e));
+      inner.querySelectorAll('.tile:not(.pow-tile)').forEach(e => shakeEl(e));
+      inner.querySelectorAll('.pow-exp-btn').forEach(e => flashExpBadge(e));
     }
   });
   wrap.appendChild(rightEl);
@@ -1472,7 +1473,8 @@ function createGroupRightEl(tile, isNew) {
   leftEl.addEventListener('click', () => {
     if (tile.innerTiles.length > 1 || tile.innerTiles.some(it => it.type !== 'simple')) {
       showTooltip(leftEl, '⚡ （　）の中を先に計算しよう！');
-      inner.querySelectorAll('.tile').forEach(e => shakeEl(e));
+      inner.querySelectorAll('.tile:not(.pow-tile)').forEach(e => shakeEl(e));
+      inner.querySelectorAll('.pow-exp-btn').forEach(e => flashExpBadge(e));
     }
   });
   wrap.appendChild(leftEl);
@@ -2368,9 +2370,7 @@ function onMulPartPointerDown(e) {
 
   // 累乗タイルが残っている場合は累乗を先に処理させる
   if (tiles.some(t => t.type === 'pow') || tile.rightPow) {
-    document.querySelectorAll('.pow-exp-btn, .tile[data-id]').forEach(el => {
-      if (el.classList.contains('pow-exp-btn')) shakeEl(el);
-    });
+    document.querySelectorAll('.pow-exp-btn').forEach(el => flashExpBadge(el));
     showTooltip(e.currentTarget, '⚡ 累乗の指数をクリックして計算しよう！');
     return;
   }
@@ -2404,6 +2404,17 @@ function shakeEl(el) {
   ], { duration: 450, easing: 'ease' });
 }
 
+/* 指数バッジ専用：拡大点滅（底タイルを揺らさない） */
+function flashExpBadge(el) {
+  el.animate([
+    { transform: 'scale(1)',   boxShadow: '0 0 0px rgba(251,191,36,0)' },
+    { transform: 'scale(1.8)', boxShadow: '0 0 10px rgba(251,191,36,1)' },
+    { transform: 'scale(1)',   boxShadow: '0 0 4px  rgba(251,191,36,0.5)' },
+    { transform: 'scale(1.6)', boxShadow: '0 0 8px  rgba(251,191,36,0.8)' },
+    { transform: 'scale(1)',   boxShadow: '0 0 0px  rgba(251,191,36,0)' },
+  ], { duration: 550, easing: 'ease-in-out' });
+}
+
 function showTooltip(anchorEl, message) {
   const bar = document.getElementById('hint-bar');
   if (!bar) return;
@@ -2411,9 +2422,9 @@ function showTooltip(anchorEl, message) {
   bar.textContent = message;
   bar.classList.add('active');
 
-  // 「指数」が含まれるヒントのとき → 指数バッジをシェイク
+  // 「指数」が含まれるヒントのとき → 指数バッジを点滅（底タイルは触らない）
   if (message.includes('指数')) {
-    document.querySelectorAll('.pow-exp-btn').forEach(el => shakeEl(el));
+    document.querySelectorAll('.pow-exp-btn').forEach(el => flashExpBadge(el));
   }
 
   clearTimeout(bar._hideTimer);
