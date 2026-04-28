@@ -220,8 +220,17 @@
       background: var(--surface);
       border: 2px solid var(--border);
       border-radius: 20px;
-      padding-bottom: 48px; /* ツールチップ・undoボタン用の余白 */
     }
+
+    /* ツールチップ専用表示エリア（カード下・undoボタンと同じ高さ帯） */
+    .tooltip-zone {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 120px 0 16px; /* 右側はundoボタンの幅分あける */
+    }
+    .panel-wrap:has(.panel-hidden) .tooltip-zone { display: none; }
 
     /* 表示/非表示トグルボタン */
     .panel-toggle-btn {
@@ -616,29 +625,25 @@
 
     /* Tooltip bubble */
     .tooltip-bubble {
-      position: absolute;
-      bottom: 14px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 9999;
+      display: inline-block;
       background: #1e293b;
       border: 1.5px solid #fbbf24;
       color: #fef3c7;
-      padding: 8px 14px;
+      padding: 6px 14px;
       border-radius: 10px;
       font-size: 0.88em;
       font-weight: 700;
       white-space: normal;
-      max-width: calc(100% - 32px);
+      max-width: 100%;
       text-align: center;
       pointer-events: none;
-      box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
       animation: tooltip-in 0.18s ease;
     }
 
     @keyframes tooltip-in {
-      from { transform: translateX(-50%) translateY(4px); opacity: 0; }
-      to   { transform: translateX(-50%) translateY(0);   opacity: 1; }
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
     /* Shake animation */
@@ -876,6 +881,7 @@
   <div class="panel-wrap">
     <button class="panel-toggle-btn" id="panel-toggle-btn" onclick="togglePanel()">非表示</button>
     <div class="game-area" id="game-area"></div>
+    <div class="tooltip-zone" id="tooltip-zone"></div>
     <button class="btn-undo" id="undo-btn" onclick="undoStep()" disabled>↩ １つ前に戻る</button>
   </div>
   <p class="hint">カードをドラッグして、別のカードの上でドロップ → 2項が足し合わされます</p>
@@ -2379,15 +2385,16 @@ function shakeEl(el) {
 }
 
 function showTooltip(anchorEl, message) {
-  document.querySelectorAll('.tooltip-bubble').forEach(t => t.remove());
+  const zone = document.getElementById('tooltip-zone');
+  if (!zone) return;
 
-  const tip = document.createElement('div');
+  // 既存のツールチップをクリア
+  zone.innerHTML = '';
+
+  const tip = document.createElement('span');
   tip.className = 'tooltip-bubble';
   tip.textContent = message;
-
-  // panel-wrap の子要素として追加（position:absolute で下端中央に固定）
-  const panelWrap = document.querySelector('.panel-wrap');
-  (panelWrap || document.body).appendChild(tip);
+  zone.appendChild(tip);
 
   setTimeout(() => { if (tip.parentNode) tip.remove(); }, 2400);
 }
