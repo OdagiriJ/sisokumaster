@@ -644,6 +644,7 @@
       flex-shrink: 0;
       padding: 4px 2px;
       transition: color 0.15s, transform 0.15s;
+      touch-action: manipulation;
     }
 
     .mul-connector-btn:hover {
@@ -2348,21 +2349,20 @@ function onMulPartPointerDown(e) {
     return;
   }
 
-  // Shake both parts together
-  document.querySelectorAll(`.tile.mul-sub[data-mulid="${mulId}"]`).forEach(el => shakeEl(el));
-
-  const tip = tile.op === '÷'
-    ? '⚡ わり算処理しよう！（「÷」をクリック）'
-    : tile.revealed
-      ? '⚡ 「×」をクリックして計算しよう！'
-      : '⚡ かけ算処理しよう！（「×」をクリック）';
-  showTooltip(e.currentTarget, tip);
-
-  // First time → highlight pair permanently
-  if (!tile.revealed) {
-    tile.revealed = true;
-    document.querySelectorAll(`.tile.mul-sub[data-mulid="${mulId}"]`)
-      .forEach(el => el.classList.add('mul-revealed'));
+  // 左右タイルをタップしても即計算（connEl click と同じロジック）
+  const t = tile;
+  if (t.rightFrac && t.op === '÷') {
+    animateDivFracToMul(t.id);
+  } else if (t.rightFrac && t.rightFrac.den === 1) {
+    resolveMul(t.id);
+  } else if (t.rightFrac && gcdInt(Math.abs(t.left), t.rightFrac.den) === 1) {
+    animateMulCollapse(t.id);
+  } else if (t.rightFrac) {
+    animateFractionResolve(t.id);
+  } else if (t.op === '÷' && t.left % t.right !== 0) {
+    animateDivRotate(t.id);
+  } else {
+    animateMulCollapse(t.id);
   }
 }
 
