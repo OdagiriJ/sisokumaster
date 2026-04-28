@@ -615,7 +615,10 @@
 
     /* Tooltip bubble */
     .tooltip-bubble {
-      position: fixed;
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
       z-index: 9999;
       background: #1e293b;
       border: 1.5px solid #fbbf24;
@@ -625,7 +628,7 @@
       font-size: 0.88em;
       font-weight: 700;
       white-space: normal;
-      max-width: calc(100vw - 32px);
+      max-width: calc(100% - 32px);
       text-align: center;
       pointer-events: none;
       box-shadow: 0 6px 24px rgba(0,0,0,0.5);
@@ -633,8 +636,8 @@
     }
 
     @keyframes tooltip-in {
-      from { transform: translateY(4px); opacity: 0; }
-      to   { transform: translateY(0); opacity: 1; }
+      from { transform: translateX(-50%) translateY(4px); opacity: 0; }
+      to   { transform: translateX(-50%) translateY(0);   opacity: 1; }
     }
 
     /* Shake animation */
@@ -2380,23 +2383,10 @@ function showTooltip(anchorEl, message) {
   const tip = document.createElement('div');
   tip.className = 'tooltip-bubble';
   tip.textContent = message;
-  document.body.appendChild(tip);
 
-  // panel-wrap の下端付近（「１つ前に戻る」ボタンと同じ高さ）に固定表示
+  // panel-wrap の子要素として追加（position:absolute で下端中央に固定）
   const panelWrap = document.querySelector('.panel-wrap');
-  const pr = panelWrap ? panelWrap.getBoundingClientRect() : anchorEl.getBoundingClientRect();
-  const tipW = tip.offsetWidth;
-  const tipH = tip.offsetHeight;
-
-  // 水平：panel-wrap 中央
-  let left = pr.left + pr.width / 2 - tipW / 2;
-  left = Math.max(pr.left + 8, Math.min(left, pr.right - tipW - 8));
-
-  // 垂直：panel-wrap の下端から tipH + 14px 上（undo ボタンと重ならない余白）
-  const top = pr.bottom - tipH - 14;
-
-  tip.style.left = left + 'px';
-  tip.style.top  = top  + 'px';
+  (panelWrap || document.body).appendChild(tip);
 
   setTimeout(() => { if (tip.parentNode) tip.remove(); }, 2400);
 }
