@@ -2298,25 +2298,9 @@ function createMulSubEls(tile, isNew) {
   connEl.className = 'mul-connector-btn';
   connEl.dataset.mulid = tile.id;
   connEl.textContent = tile.op || '×';
-  connEl.addEventListener('click', () => {
-    const t = tiles.find(x => x.id === tile.id);
-    if (t?.rightPow) {
-      showTooltip(connEl, '⚡ 指数をクリックして累乗を計算しよう！');
-      return;
-    }
-    if (t?.rightFrac && t?.op === '÷') {
-      animateDivFracToMul(tile.id);          // ÷(分数) → フリップ → ×(逆数) → 約分へ
-    } else if (t?.rightFrac && t.rightFrac.den === 1) {
-      resolveMul(tile.id);                   // 分母が1なら即計算
-    } else if (t?.rightFrac && gcdInt(Math.abs(t.left), t.rightFrac.den) === 1) {
-      animateMulCollapse(tile.id);           // 約分なし（gcd=1）→ 通常の吸い寄せアニメ
-    } else if (t?.rightFrac) {
-      animateFractionResolve(tile.id);       // 約分あり → 約分アニメ
-    } else if (t?.op === '÷' && t.left % t.right !== 0) {
-      animateDivRotate(tile.id);   // 整数÷整数で答えが分数: スライドアニメ
-    } else {
-      animateMulCollapse(tile.id);  // 整数×整数: 吸い寄せアニメ
-    }
+  connEl.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    executeMulComputation(tile.id, connEl);
   });
 
   return [leftEl, connEl, rightEl];
@@ -2328,30 +2312,38 @@ function highlightMulPair(mulId, on) {
   );
 }
 
-/* ---- Mul sub-tile interaction ---- */
-function onMulPartPointerDown(e) {
-  e.preventDefault();
+/* ---- Mul 計算の共通実行関数（二重実行防止つき） ---- */
+const _mulLastFired = {};
+function executeMulComputation(tileId, anchorEl) {
+  const now = Date.now();
+  if (_mulLastFired[tileId] && now - _mulLastFired[tileId] < 400) return;
+  _mulLastFired[tileId] = now;
 
-  const mulId = parseInt(e.currentTarget.dataset.mulid);
-  const tile  = tiles.find(t => t.id === mulId);
-  if (!tile) return;
+  const t = tiles.find(x => x.id === tileId);
+  if (!t) return;
 
-  // かっこグループが残っている場合はかっこを先に処理させる
-  if (tiles.some(t => (t.type === 'group_mul' || t.type === 'group_right') && t.innerTiles.length > 1)) {
-    document.querySelectorAll('.inner-tile').forEach(e => shakeEl(e));
-    showTooltip(e.currentTarget, '⚡ （　）の中を先に計算しよう！');
-    return;
-  }
-
-  // 累乗タイルが残っている場合は累乗を先に処理させる
-  if (tiles.some(t => t.type === 'pow') || tile.rightPow) {
+  // rightPow チェック（指数が残っている）
+  if (t.rightPow) {
     document.querySelectorAll('.pow-exp-btn').forEach(el => flashExpBadge(el));
-    showTooltip(e.currentTarget, '⚡ 指数をクリックして累乗を計算しよう！');
+    showTooltip(anchorEl, '⚡ 指数をクリックして累乗を計算しよう！');
     return;
   }
 
-  // 左右タイルをタップしても即計算（connEl click と同じロジック）
-  const t = tile;
+  // かっこグループが残っている
+  if (tiles.some(x => (x.type === 'group_mul' || x.type === 'group_right') && x.innerTiles.length > 1)) {
+    document.querySelectorAll('.inner-tile').forEach(e => shakeEl(e));
+    showTooltip(anchorEl, '⚡ （　）の中を先に計算しよう！');
+    return;
+  }
+
+  // 累乗タイルが残っている
+  if (tiles.some(x => x.type === 'pow')) {
+    document.querySelectorAll('.pow-exp-btn').forEach(el => flashExpBadge(el));
+    showTooltip(anchorEl, '⚡ 指数をクリックして累乗を計算しよう！');
+    return;
+  }
+
+  // 計算実行
   if (t.rightFrac && t.op === '÷') {
     animateDivFracToMul(t.id);
   } else if (t.rightFrac && t.rightFrac.den === 1) {
@@ -2365,6 +2357,13 @@ function onMulPartPointerDown(e) {
   } else {
     animateMulCollapse(t.id);
   }
+}
+
+/* ---- Mul sub-tile interaction ---- */
+function onMulPartPointerDown(e) {
+  e.preventDefault();
+  const mulId = parseInt(e.currentTarget.dataset.mulid);
+  executeMulComputation(mulId, e.currentTarget);
 }
 
 function shakeEl(el) {
