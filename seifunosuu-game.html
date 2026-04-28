@@ -220,15 +220,20 @@
       background: var(--surface);
       border: 2px solid var(--border);
       border-radius: 20px;
+      padding-bottom: 52px; /* undoボタン・ツールチップ用の余白 */
     }
 
-    /* ツールチップ専用表示エリア（カード下・undoボタンと同じ高さ帯） */
+    /* ツールチップ専用表示エリア（undoボタンと同じ高さ・左寄り） */
     .tooltip-zone {
-      height: 44px;
+      position: absolute;
+      bottom: 10px;
+      left: 16px;
+      right: 155px; /* undoボタンの幅分あける */
       display: flex;
       align-items: center;
-      justify-content: center;
-      padding: 0 120px 0 16px; /* 右側はundoボタンの幅分あける */
+      justify-content: flex-start;
+      pointer-events: none;
+      z-index: 25;
     }
     .panel-wrap:has(.panel-hidden) .tooltip-zone { display: none; }
 
