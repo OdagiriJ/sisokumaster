@@ -627,6 +627,7 @@
     .btn-undo:disabled { cursor: default; opacity: 0.45; }
 
     /* ---- Mul sub-tiles (look normal initially) ---- */
+    .tile.mul-sub { touch-action: manipulation; }
     .tile.mul-sub.mul-highlighted,
     .tile.mul-sub.mul-revealed {
       border-color: #fbbf24 !important;
@@ -2290,7 +2291,7 @@ function createMulSubEls(tile, isNew) {
   [leftEl, rightEl].forEach(el => {
     el.addEventListener('pointerenter', () => highlightMulPair(tile.id, true));
     el.addEventListener('pointerleave', () => highlightMulPair(tile.id, false));
-    el.addEventListener('pointerdown', onMulPartPointerDown, { passive: false });
+    // pointerdown は #game-area の委譲リスナーで処理
   });
 
   // operator connector — always visible from the start
@@ -2298,10 +2299,7 @@ function createMulSubEls(tile, isNew) {
   connEl.className = 'mul-connector-btn';
   connEl.dataset.mulid = tile.id;
   connEl.textContent = tile.op || '×';
-  connEl.addEventListener('pointerdown', e => {
-    e.preventDefault();
-    executeMulComputation(tile.id, connEl);
-  });
+  // pointerdown は #game-area の委譲リスナーで処理
 
   return [leftEl, connEl, rightEl];
 }
@@ -4333,6 +4331,29 @@ function generateAndStart(type) {
 }
 
 /* ---- Init ---- */
+
+// ×÷タイルのタップを game-area で一括処理（イベント委譲）
+// render() で DOM が再構築されても、game-area 自体は消えないのでリスナーが永続する
+document.getElementById('game-area').addEventListener('pointerdown', function(e) {
+  // pow-exp-btn（指数バッジ）は自前の stopPropagation があるのでここには来ない
+
+  // ① 演算子ボタン（×÷）をタップ
+  const conn = e.target.closest('.mul-connector-btn');
+  if (conn) {
+    e.preventDefault();
+    executeMulComputation(parseInt(conn.dataset.mulid), conn);
+    return;
+  }
+
+  // ② 左右タイル（mul-sub）をタップ
+  const sub = e.target.closest('.tile.mul-sub[data-mulid]');
+  if (sub) {
+    e.preventDefault();
+    executeMulComputation(parseInt(sub.dataset.mulid), sub);
+    return;
+  }
+}, { passive: false });
+
 startGame();
 
 /* ---- Service Worker 登録（PWA オフライン対応） ---- */
