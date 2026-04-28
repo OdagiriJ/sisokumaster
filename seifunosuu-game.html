@@ -1545,7 +1545,7 @@ function createInnerPowEl(it, groupId, isFirst) {
 
   el.addEventListener('click', (e) => {
     if (e.target === badge) return;
-    showTooltip(el, '⚡ 累乗を計算しよう（指数をクリック）');
+    showTooltip(el, '⚡ 指数をクリックして累乗を計算しよう！');
   });
 
   return el;
@@ -1737,7 +1737,7 @@ function onInnerPointerDown(e) {
 
   // 累乗・乗除が残っているときは先にそちらを処理させる
   if (groupTile.innerTiles.some(it => it.type === 'pow')) {
-    showTooltip(el, '⚡ 累乗を先に計算しよう！（指数をクリック）');
+    showTooltip(el, '⚡ 指数をクリックして累乗を計算しよう！');
     return;
   }
   if (groupTile.innerTiles.some(it => it.type === 'mul')) {
@@ -1965,7 +1965,7 @@ function resolveSign(signTileId) {
 
   // 右隣が累乗タイルなら先に累乗を処理させる
   if (rightTile.type === 'pow') {
-    showTooltip(signEl || document.body, '⚡ 累乗を先に計算しよう（指数をクリック）');
+    showTooltip(signEl || document.body, '⚡ 指数をクリックして累乗を計算しよう！');
     return;
   }
   // 右隣がかけ算タイルなら先にかけ算を処理させる
@@ -2048,7 +2048,7 @@ function createPowOpBtn(tile) {
   btn.textContent = tile.op === '-' ? '－' : '＋';
   btn.title = '累乗を先に計算しよう';
   btn.addEventListener('click', () => {
-    showTooltip(btn, '⚡ 累乗を先に計算しよう！（指数をクリック）');
+    showTooltip(btn, '⚡ 指数をクリックして累乗を計算しよう！');
   });
   return btn;
 }
@@ -2082,7 +2082,7 @@ function createPowTileEl(tile, isNew) {
 
   el.addEventListener('click', (e) => {
     if (e.target === badge) return;
-    showTooltip(el, '⚡ 累乗を計算しよう（指数をクリック）');
+    showTooltip(el, '⚡ 指数をクリックして累乗を計算しよう！');
   });
 
   return el;
@@ -2305,7 +2305,7 @@ function createMulSubEls(tile, isNew) {
     }
     rightEl.addEventListener('click', e => {
       if (e.target === badge) return;
-      showTooltip(rightEl, '⚡ 指数をクリックして累乗を先に計算しよう！');
+      showTooltip(rightEl, '⚡ 指数をクリックして累乗を計算しよう！');
     });
   } else {
     rightEl.className = `tile ${colorClass(tile.right)} mul-sub${revClass}`;
@@ -2326,7 +2326,7 @@ function createMulSubEls(tile, isNew) {
   connEl.addEventListener('click', () => {
     const t = tiles.find(x => x.id === tile.id);
     if (t?.rightPow) {
-      showTooltip(connEl, '⚡ 累乗を先に計算しよう！（指数をクリック）');
+      showTooltip(connEl, '⚡ 指数をクリックして累乗を計算しよう！');
       return;
     }
     if (t?.rightFrac && t?.op === '÷') {
@@ -2371,7 +2371,7 @@ function onMulPartPointerDown(e) {
   // 累乗タイルが残っている場合は累乗を先に処理させる
   if (tiles.some(t => t.type === 'pow') || tile.rightPow) {
     document.querySelectorAll('.pow-exp-btn').forEach(el => flashExpBadge(el));
-    showTooltip(e.currentTarget, '⚡ 累乗の指数をクリックして計算しよう！');
+    showTooltip(e.currentTarget, '⚡ 指数をクリックして累乗を計算しよう！');
     return;
   }
 
