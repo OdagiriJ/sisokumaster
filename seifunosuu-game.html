@@ -3,7 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>四則計算 計算ゲーム</title>
+  <title>四則マスター</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#7c3aed">
+  <!-- iOS ホーム画面対応 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="四則マスター">
+  <link rel="apple-touch-icon" href="./icon.svg">
   <style>
     :root {
       --bg: #0f0e17;
@@ -92,15 +101,61 @@
 
     .btn-primary { background: #7c3aed; color: white; }
 
-    .btn-generate {
-      background: linear-gradient(135deg, #b45309, #d97706);
-      color: #fef3c7;
-      font-size: 1em;
+    .generate-btns {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+      max-width: 560px;
+    }
+
+    .btn-gen {
+      padding: 10px 8px;
+      border-radius: 12px;
       border: none;
+      font-size: 0.92em;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.12s, filter 0.12s;
       letter-spacing: 0.02em;
     }
 
-    .btn-generate:hover { filter: brightness(1.15); transform: translateY(-2px); }
+    .btn-gen:hover { transform: translateY(-2px); filter: brightness(1.15); }
+
+    .btn-gen-addsub {
+      background: linear-gradient(135deg, #065f46, #059669);
+      color: #d1fae5;
+    }
+
+    .btn-gen-muldiv {
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      color: #dbeafe;
+    }
+
+    .btn-gen-pow {
+      background: linear-gradient(135deg, #4c1d95, #7c3aed);
+      color: #ede9fe;
+    }
+
+    .btn-gen-frac {
+      background: linear-gradient(135deg, #831843, #db2777);
+      color: #fce7f3;
+    }
+
+    .btn-gen-paren {
+      background: linear-gradient(135deg, #0f4c75, #1b6ca8);
+      color: #bae6fd;
+    }
+
+    .btn-gen-frac-ans {
+      background: linear-gradient(135deg, #064e3b, #059669);
+      color: #a7f3d0;
+    }
+    .btn-gen-random {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, #b45309, #d97706);
+      color: #fef3c7;
+    }
 
     .presets {
       display: flex;
@@ -145,21 +200,98 @@
     .expr-display {
       text-align: center;
       font-family: monospace;
-      font-size: 1.05em;
-      color: #94a3b8;
-      padding: 6px;
-      background: var(--surface);
-      border-radius: 10px;
-      border: 1px solid var(--border);
+      font-size: 2.4em;
+      font-weight: 900;
+      color: #f1f5f9;
+      line-height: 1.8;
+      white-space: nowrap;
+      letter-spacing: 0.06em;
+      text-shadow: 0 0 18px rgba(167, 139, 250, 0.7);
+      padding: 18px 28px 22px;
+      border-radius: 16px;
+      border: 2px solid #6d28d9;
+      background: linear-gradient(135deg, #1e1433 0%, #1a1a2e 100%);
+      box-shadow: 0 0 28px rgba(139, 92, 246, 0.4);
     }
 
-    .expr-display span { color: var(--text); font-weight: bold; font-size: 1.1em; }
-
-    /* Game area */
-    .game-area {
+    /* Panel wrap (game-area の外枠) */
+    .panel-wrap {
+      position: relative;
       background: var(--surface);
       border: 2px solid var(--border);
       border-radius: 20px;
+    }
+
+    /* 表示/非表示トグルボタン */
+    .panel-toggle-btn {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      z-index: 20;
+      background: rgba(100,116,139,0.18);
+      border: 1px solid rgba(100,116,139,0.4);
+      color: var(--subtle);
+      font-size: 0.72em;
+      padding: 3px 11px;
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      line-height: 1.5;
+      transition: background 0.15s, color 0.15s;
+    }
+    .panel-toggle-btn:hover {
+      background: rgba(100,116,139,0.38);
+      color: var(--text);
+    }
+
+    /* 式表示ラッパー（解答ボタン配置用） */
+    .expr-wrap {
+      position: relative;
+      width: 100%;
+    }
+
+    /* 問題種別ラベル（式枠の左上） */
+    .game-type-label {
+      position: absolute;
+      top: 8px;
+      left: 10px;
+      z-index: 10;
+      background: rgba(100,116,139,0.18);
+      border: 1px solid rgba(100,116,139,0.4);
+      color: var(--subtle);
+      font-size: 0.72em;
+      padding: 3px 11px;
+      border-radius: 8px;
+      user-select: none;
+      line-height: 1.5;
+      pointer-events: none;
+    }
+
+    /* 解答ボタン */
+    .answer-reveal-btn {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      z-index: 10;
+      background: rgba(100,116,139,0.18);
+      border: 1px solid rgba(100,116,139,0.4);
+      color: var(--subtle);
+      font-size: 0.72em;
+      padding: 3px 11px;
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      line-height: 1.5;
+      transition: background 0.15s, color 0.15s;
+    }
+    .answer-reveal-btn:hover {
+      background: rgba(100,116,139,0.38);
+      color: var(--text);
+    }
+
+    /* Game area */
+    .game-area {
+      /* 外枠は panel-wrap が担当 */
       min-height: 180px;
       display: flex;
       flex-wrap: wrap;
@@ -167,6 +299,17 @@
       padding: 36px 24px;
       justify-content: center;
       align-items: center;
+      transition: min-height 0.25s, padding 0.25s;
+    }
+
+    /* パネル非表示時 */
+    .game-area.panel-hidden {
+      min-height: 52px;
+      padding: 0;
+      overflow: hidden;
+    }
+    .game-area.panel-hidden > * {
+      display: none !important;
     }
 
     /* Tiles */
@@ -278,9 +421,47 @@
     .step-chain {
       font-family: monospace;
       font-size: 1.05em;
-      line-height: 1;
+      line-height: normal;
       max-height: 260px;
       overflow-y: auto;
+    }
+
+    /* インライン分数（計算する式・途中式用） */
+    .inline-frac {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 0.82em;
+      font-weight: 900;
+      vertical-align: middle;
+      margin: 0 1px;
+      line-height: 1.1;
+    }
+    .inline-frac .ifn {
+      border-bottom: 2px solid currentColor;
+      padding: 0 4px 1px;
+      min-width: 1em;
+      text-align: center;
+    }
+    .inline-frac .ifd {
+      padding: 1px 4px 0;
+      min-width: 1em;
+      text-align: center;
+    }
+    .ifrac-sign {
+      display: inline-block;
+      width: 7px;
+      height: 0;
+      border-top: 2px solid currentColor;
+      vertical-align: middle;
+      margin: 0 2px 0 1px;
+    }
+    .frac-minus-line {
+      display: inline-block;
+      width: 8px;
+      height: 0;
+      border-top: 2.5px solid currentColor;
+      flex-shrink: 0;
     }
 
     .step-line {
@@ -336,16 +517,38 @@
       color: #fbbf24;
       font-family: monospace;
     }
+    .win-card .win-answer-frac {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 2em;
+      font-weight: 900;
+      color: #fbbf24;
+      font-family: monospace;
+      gap: 0;
+      margin: 6px 0;
+    }
+    .win-card .win-frac-num {
+      border-bottom: 3px solid #fbbf24;
+      padding: 0 12px 2px;
+      min-width: 1.8em;
+      text-align: center;
+    }
+    .win-card .win-frac-den {
+      padding: 2px 12px 0;
+      min-width: 1.8em;
+      text-align: center;
+    }
     .win-card .win-steps {
       color: #a78bfa;
       font-size: 0.9em;
       margin-top: 8px;
     }
 
-    .win-btns { display: flex; gap: 10px; justify-content: center; margin-top: 22px; }
+    .win-btns { display: flex; gap: 10px; justify-content: center; margin-top: 22px; flex-wrap: wrap; }
 
     .win-btn {
-      padding: 12px 28px;
+      padding: 12px 22px;
       border-radius: 12px;
       border: none;
       font-size: 0.95em;
@@ -355,17 +558,22 @@
     }
 
     .win-btn:hover { filter: brightness(1.2); }
-    .win-btn-main { background: #7c3aed; color: white; }
-    .win-btn-sub  { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+    .win-btn-main  { background: #7c3aed; color: white; }
+    .win-btn-sub   { background: #1e4a6b; color: #7dd3fc; border: 1px solid #0369a1; }
+    .win-btn-close { background: #1e293b; color: #64748b; border: 1px solid #334155; }
 
     /* Undo button */
     .btn-undo {
-      background: var(--surface);
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      z-index: 20;
+      background: rgba(30,41,59,0.85);
       color: #94a3b8;
       border: 1.5px solid var(--border);
-      border-radius: 12px;
-      padding: 8px 20px;
-      font-size: 0.9em;
+      border-radius: 10px;
+      padding: 5px 14px;
+      font-size: 0.82em;
       font-weight: 700;
       cursor: pointer;
       transition: all 0.15s;
@@ -375,7 +583,9 @@
       color: white;
       border-color: #94a3b8;
     }
-    .btn-undo:disabled { cursor: default; }
+    .btn-undo:disabled { cursor: default; opacity: 0.45; }
+    /* パネル非表示時はボタンも隠す */
+    .panel-wrap:has(.panel-hidden) .btn-undo { display: none; }
 
     /* ---- Mul sub-tiles (look normal initially) ---- */
     .tile.mul-sub.mul-highlighted,
@@ -389,7 +599,7 @@
       background: none;
       border: none;
       color: #e2e8f0;
-      font-size: 1.4em;
+      font-size: 2em;
       font-weight: 700;
       cursor: pointer;
       align-self: center;
@@ -428,11 +638,11 @@
     .tooltip-bubble::after {
       content: '';
       position: absolute;
-      top: 100%;
+      bottom: 100%;
       left: 50%;
       transform: translateX(-50%);
       border: 6px solid transparent;
-      border-top-color: #fbbf24;
+      border-bottom-color: #fbbf24;
     }
 
     /* Shake animation */
@@ -444,7 +654,6 @@
       72%      { transform: translateX(5px)  rotate(1deg); }
     }
 
-    .tile.shaking { animation: shake 0.45s ease; }
 
     /* Pow exponent badge */
     .pow-exp-btn {
@@ -528,6 +737,29 @@
 
     .reduced-pop { animation: reduced-pop 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards; }
 
+    /* 累乗タイルの左に出る演算子ボタン（括弧ありの場合のみ）*/
+    .pow-op-btn {
+      background: none;
+      border: none;
+      color: #e2e8f0;
+      font-size: 1.65em;
+      font-weight: 900;
+      width: 44px;
+      height: 44px;
+      cursor: pointer;
+      align-self: center;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s, transform 0.15s;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+    }
+    .pow-op-btn:hover {
+      color: #fbbf24;
+      transform: scale(1.22);
+    }
+
     /* 符号タイル（単独の＋か－）— 点線の円なし、白文字 */
     .sign-tile-btn {
       background: none;
@@ -571,52 +803,88 @@
       padding: 0 5px;
       text-align: center;
     }
+
+    /* ── かっこグループタイル ── */
+    .group-mul-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .group-bracket {
+      font-size: 3em;
+      line-height: 1;
+      color: #a78bfa;
+      font-weight: 300;
+      user-select: none;
+      padding: 0 1px;
+    }
+    .group-inner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .inner-tile {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .group-op-label {
+      font-size: 2em;
+      font-weight: 800;
+      color: #e2e8f0;
+      padding: 0 2px;
+      user-select: none;
+    }
+    .group-right-tile {
+      cursor: pointer;
+    }
+    .group-right-tile:hover { transform: translateY(-5px) scale(1.06); }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>四則計算 <span>計算ゲーム</span></h1>
+  <h1>四則<span>マスター</span></h1>
   <p class="tagline">四則計算の手順をマスターしよう</p>
 </header>
 
 <div class="controls">
-  <div class="input-row">
+  <div class="input-row" style="display:none">
     <input type="text" class="expr-input" id="expr-input" value="-1+3-5+7"
            placeholder="-1+3-5+7" onkeydown="if(event.key==='Enter') startGame()">
     <button class="btn btn-primary" onclick="startGame()">スタート</button>
   </div>
-  <div class="presets">
+  <div class="presets" style="display:none">
     <button class="btn-preset" onclick="loadPreset('-1+3-5+7')">-1+3-5+7</button>
-    <button class="btn-preset" onclick="loadPreset('2-4+6-3')">2-4+6-3</button>
-    <button class="btn-preset" onclick="loadPreset('-3-2+8-1')">-3-2+8-1</button>
-    <button class="btn-preset" onclick="loadPreset('5-9+4-2+6')">5-9+4-2+6</button>
-    <button class="btn-preset" onclick="loadPreset('-7+3+2-5+8')">-7+3+2-5+8</button>
-    <button class="btn-preset" style="border-color:#d97706;color:#fbbf24" onclick="loadPreset('-5+3×(-2)')">-5+3×(-2) ✨</button>
-    <button class="btn-preset" style="border-color:#0891b2;color:#67e8f9" onclick="loadPreset('-5+6÷(-3)')">-5+6÷(-3) ✨</button>
-    <button class="btn-preset" style="border-color:#8b5cf6;color:#c4b5fd" onclick="loadPreset('3^2-5')">3²-5 ⚡</button>
-    <button class="btn-preset" style="border-color:#8b5cf6;color:#c4b5fd" onclick="loadPreset('(-2)^3+6')">(-2)³+6 ⚡</button>
-    <button class="btn-preset" style="border-color:#0ea5e9;color:#7dd3fc" onclick="loadPreset('-4×(1/2)+3')">-4×½+3</button>
-    <button class="btn-preset" style="border-color:#0ea5e9;color:#7dd3fc" onclick="loadPreset('6×(2/3)-5')">6×⅔-5</button>
-    <button class="btn-preset" style="border-color:#f472b6;color:#fbcfe8" onclick="loadPreset('6÷(3/2)-2')">6÷³⁄₂-2 🔄</button>
-    <button class="btn-preset" style="border-color:#f472b6;color:#fbcfe8" onclick="loadPreset('-9÷(3/4)+1')">-9÷¾+1 🔄</button>
-    <button class="btn-preset" style="border-color:#34d399;color:#6ee7b7" onclick="loadPreset('-(-4)+3')">-(-4)+3 ±</button>
-    <button class="btn-preset" style="border-color:#34d399;color:#6ee7b7" onclick="loadPreset('5-(-4)-2')">5-(-4)-2 ±</button>
-    <button class="btn-preset" style="border-color:#34d399;color:#6ee7b7" onclick="loadPreset('-(-3)-(-2)+1')">-(-3)-(-2)+1 ±</button>
-    <button class="btn-preset" style="border-color:#34d399;color:#6ee7b7" onclick="loadPreset('+(+5)+3')">+(+5)+3 ±</button>
-    <button class="btn-preset" style="border-color:#34d399;color:#6ee7b7" onclick="loadPreset('5+(-3)+2')">5+(-3)+2 ±</button>
+    <button class="btn-preset" style="border-color:#d97706;color:#fbbf24" onclick="loadPreset('-5+3×(-2)')">-5+3×(-2)</button>
+    <button class="btn-preset" style="border-color:#8b5cf6;color:#c4b5fd" onclick="loadPreset('(-2)^3+6')">(-2)³+6</button>
+    <button class="btn-preset" style="border-color:#f472b6;color:#fbcfe8" onclick="loadPreset('6÷(3/2)-2')">6÷³⁄₂-2</button>
   </div>
-  <button class="btn btn-generate" onclick="generateAndStart()">🎲 問題を生成する</button>
+  <div class="generate-btns">
+    <button class="btn-gen btn-gen-addsub" onclick="generateAndStart('addsub')">＋−のみ</button>
+    <button class="btn-gen btn-gen-muldiv" onclick="generateAndStart('muldiv')">×÷含む</button>
+    <button class="btn-gen btn-gen-pow"    onclick="generateAndStart('pow')">累乗含む</button>
+    <button class="btn-gen btn-gen-frac"   onclick="generateAndStart('frac')">分数含む</button>
+    <button class="btn-gen btn-gen-paren"    onclick="generateAndStart('paren')">かっこ含む</button>
+    <button class="btn-gen btn-gen-frac-ans" onclick="generateAndStart('frac-answer')">答えが分数</button>
+    <button class="btn-gen btn-gen-random" style="grid-column:1/-1" onclick="generateAndStart()">完全ランダム</button>
+  </div>
 </div>
 
 <div class="game-wrapper">
-  <p class="hint">タイルをドラッグして、別のタイルの上でドロップ → 2項が足し合わされます</p>
-  <div class="expr-display" id="expr-display"></div>
-  <div class="game-area" id="game-area"></div>
-  <p class="remaining" id="remaining"></p>
-  <div style="text-align:center">
+  <div class="expr-wrap">
+    <span class="game-type-label" id="game-type-label"></span>
+    <div class="expr-display" id="expr-display"></div>
+    <button class="answer-reveal-btn" id="answer-reveal-btn" onclick="showAnswerReveal()">解答</button>
+  </div>
+  <div class="panel-wrap">
+    <button class="panel-toggle-btn" id="panel-toggle-btn" onclick="togglePanel()">非表示</button>
+    <div class="game-area" id="game-area"></div>
     <button class="btn-undo" id="undo-btn" onclick="undoStep()" disabled>↩ １つ前に戻る</button>
   </div>
+  <p class="hint">カードをドラッグして、別のカードの上でドロップ → 2項が足し合わされます</p>
+  <p class="hint">演算記号や指数を押すと、その部分の計算がされます</p>
+  <p class="remaining" id="remaining"></p>
 
   <div class="panel">
     <div class="panel-title">途中式</div>
@@ -632,6 +900,12 @@ let dragId = null;
 let ghostEl = null;
 let stepCount = 0;
 let history = [];  // undo stack
+let lastGameType = null; // 直前に生成したゲームの種別
+let lastTerms = null;   // 直前のゲームの元 terms（もう一度用）
+let currentAnswer = null; // 現在の問題の答え { isInt, value } or { isInt:false, frac:{num,den} }
+let innerDragId = null;       // inner tile id being dragged
+let hoveredTargetId = null;   // ドラッグ中にハイライト中のドロップ先 tile id
+let innerDragGroupId = null;  // group_mul tile id that owns the dragged inner tile
 
 function pushHistory() {
   history.push({
@@ -667,56 +941,152 @@ function updateUndoBtn() {
 function parseExpr(expr) {
   expr = expr.replace(/\s/g, '');
   const terms = [];
-  // Priority order:
-  //   1. (base)^exp  — negative base in parens e.g. (-2)^3
-  //   2. base^exp    — positive/negative base e.g. 3^2 or -3^2
-  //   3. num × (num) / num ÷ (num)
-  //   4. num × num   / num ÷ num
-  //   5. num
-  // Groups:
-  //  1,2   → (base)^exp
-  //  3,4   → base^exp
-  //  5,6,7 → num×(a/b)  fraction mul
-  //  8,9,10 → num×(int) or num÷(int)
-  //  11,12,13 → num×int or num÷int
-  //  14    → simple num
-  // Groups:
-  //  m[1],m[2]            → (base)^exp
-  //  m[3],m[4]            → base^exp
-  //  m[5],m[6],m[7],m[8]  → left(×|÷)(num/den)  ← fraction mul/div
-  //  m[9],m[10],m[11]     → left(×|÷)(int)
-  //  m[12],m[13],m[14]    → left(×|÷)int
-  //  m[15],m[16]          → sign(value)  ← 符号タイル e.g. -(−4) or +(+3)
-  //  m[17]                → simple
-  const re = /\(([+-]?\d+)\)\^([23])|([+-]?\d+)\^([23])|([+-]?\d+)(×|÷)\((\d+)\/(\d+)\)|([+-]?\d+)(×|÷)\(([+-]?\d+)\)|([+-]?\d+)(×|÷)([+-]?\d+)|([+-])\(([+-]?\d+)\)|([+-]?\d+)/g;
-  let m;
-  while ((m = re.exec(expr)) !== null) {
-    if (m[1] !== undefined) {
-      terms.push({ type: 'pow', base: parseInt(m[1]), exp: parseInt(m[2]) });
-    } else if (m[3] !== undefined) {
-      terms.push({ type: 'pow', base: parseInt(m[3]), exp: parseInt(m[4]) });
-    } else if (m[5] !== undefined) {
-      // fraction mul/div: left (×|÷) (num/den)
-      terms.push({ type: 'mul', op: m[6], left: parseInt(m[5]), rightFrac: { num: parseInt(m[7]), den: parseInt(m[8]) } });
-    } else if (m[9] !== undefined) {
-      terms.push({ type: 'mul', op: m[10], left: parseInt(m[9]), right: parseInt(m[11]) });
-    } else if (m[12] !== undefined) {
-      terms.push({ type: 'mul', op: m[13], left: parseInt(m[12]), right: parseInt(m[14]) });
-    } else if (m[15] !== undefined) {
-      // 符号タイル: -(−4) / +(+3) など — sign tile + value tile の2つを生成
-      terms.push({ type: 'sign', op: m[15] });
-      terms.push({ type: 'simple', value: parseInt(m[16]) });
-    } else {
-      terms.push({ type: 'simple', value: parseInt(m[17]) });
+
+  // 対応する閉じカッコの位置を返す
+  function findClose(str, start) {
+    let d = 0;
+    for (let j = start; j < str.length; j++) {
+      if (str[j] === '(' || str[j] === '{') d++;
+      else if (str[j] === ')' || str[j] === '}') { if (--d === 0) return j; }
     }
+    return -1;
+  }
+
+  // かっこ内の式をタイル配列に変換（simple / pow / mul のみ）
+  function parseInner(str) {
+    const result = [];
+    const re = /([+-]?\d+)\^([23])|([+-]?\d+)(×|÷)([+-]?\d+)|([+-]?\d+)/g;
+    let m;
+    while ((m = re.exec(str)) !== null) {
+      if (m[1] !== undefined) {
+        const raw = parseInt(m[1]);
+        result.push(raw < 0
+          ? { type: 'pow', base: -raw, exp: parseInt(m[2]), negated: true }
+          : { type: 'pow', base: raw,  exp: parseInt(m[2]) });
+      } else if (m[3] !== undefined) {
+        result.push({ type: 'mul', op: m[4], left: parseInt(m[3]), right: parseInt(m[5]) });
+      } else if (m[6] !== undefined) {
+        result.push({ type: 'simple', value: parseInt(m[6]) });
+      }
+    }
+    return result;
+  }
+
+  let i = 0;
+  while (i < expr.length) {
+
+    // ── (inner) × N  /  (inner) ÷ N  → group_mul ──────────────
+    if (expr[i] === '(') {
+      const closeIdx = findClose(expr, i);
+      if (closeIdx !== -1) {
+        const inner = expr.slice(i + 1, closeIdx);
+        // 純粋な分数（3/2 など）はフォールバックの rightFrac パターンに任せる
+        if (!/^[+-]?\d+\/\d+$/.test(inner)) {
+          const innerTerms = parseInner(inner);
+          if (innerTerms.length >= 2) {
+            const after = expr.slice(closeIdx + 1);
+            const opM = /^([×÷])(\(([+-]?\d+)\)|([+-]?\d+))/.exec(after);
+            if (opM) {
+              const right = parseInt(opM[3] !== undefined ? opM[3] : opM[4]);
+              terms.push({ type: 'group_mul', bracket: '(', innerTiles: innerTerms, op: opM[1], right });
+              i = closeIdx + 1 + opM[0].length;
+              continue;
+            }
+          }
+        }
+      }
+    }
+
+    // ── N × (inner)  /  N ÷ (inner)  → group_right ────────────
+    {
+      const numM = /^([+-]?\d+)([×÷])\(/.exec(expr.slice(i));
+      if (numM) {
+        const parenStart = i + numM[0].length - 1;
+        const closeIdx = findClose(expr, parenStart);
+        if (closeIdx !== -1) {
+          const inner = expr.slice(parenStart + 1, closeIdx);
+          // 純粋な分数（3/2 など）はフォールバックの rightFrac パターンに任せる
+          if (!/^[+-]?\d+\/\d+$/.test(inner)) {
+            const innerTerms = parseInner(inner);
+            if (innerTerms.length >= 2) {
+              terms.push({ type: 'group_right', bracket: '(', left: parseInt(numM[1]), op: numM[2], innerTiles: innerTerms });
+              i = closeIdx + 1;
+              continue;
+            }
+          }
+        }
+      }
+    }
+
+    // ── フォールバック: 既存トークンパターン（先頭固定） ──────────
+    const sub = expr.slice(i);
+    const re = /^([+-]?)\(([+-]?\d+)\)\^([23])|^([+-]?\d+)\^([23])|^([+-]?\d+)(×|÷)\(([+-]?\d+)\/(\d+)\)|^([+-]?\d+)(×|÷)\(([+-]?\d+)\)|^([+-]?\d+)(×|÷)([+-]?\d+)|^([+-])\(([+-]?\d+)\)|^([+-]?\d+)/;
+    const m = re.exec(sub);
+    if (!m) { i++; continue; }
+
+    if (m[2] !== undefined) {
+      const op = m[1] || '+';
+      terms.push({ type: 'pow', base: parseInt(m[2]), exp: parseInt(m[3]),
+                   op: terms.length > 0 ? op : null });
+    } else if (m[4] !== undefined) {
+      const baseRaw = parseInt(m[4]);
+      if (baseRaw < 0) terms.push({ type: 'pow', base: -baseRaw, exp: parseInt(m[5]), negated: true });
+      else             terms.push({ type: 'pow', base: baseRaw,  exp: parseInt(m[5]) });
+    } else if (m[6] !== undefined) {
+      terms.push({ type: 'mul', op: m[7], left: parseInt(m[6]), rightFrac: { num: parseInt(m[8]), den: parseInt(m[9]) } });
+    } else if (m[10] !== undefined) {
+      terms.push({ type: 'mul', op: m[11], left: parseInt(m[10]), right: parseInt(m[12]) });
+    } else if (m[13] !== undefined) {
+      terms.push({ type: 'mul', op: m[14], left: parseInt(m[13]), right: parseInt(m[15]) });
+    } else if (m[16] !== undefined) {
+      terms.push({ type: 'sign', op: m[16] });
+      terms.push({ type: 'simple', value: parseInt(m[17]) });
+    } else if (m[18] !== undefined) {
+      terms.push({ type: 'simple', value: parseInt(m[18]) });
+    }
+    i += m[0].length;
   }
   return terms;
 }
 
 /* ---- Formatting / color ---- */
-function fmt(n) { return n >= 0 ? '+' + n : String(n); }
+function fmt(n) { return n === 0 ? '0' : n > 0 ? '+' + n : String(n); }
 
 function colorClass(n) { return n > 0 ? 'positive' : n < 0 ? 'negative' : 'zero'; }
+
+function gcdInt(a, b) { return b === 0 ? Math.abs(a) : gcdInt(b, a % b); }
+function makeFrac(num, den) {
+  // 符号を分子に統一・約分した {num, den} を返す
+  if (den < 0) { num = -num; den = -den; }
+  const g = gcdInt(Math.abs(num), den);
+  return { num: num / g, den: den / g };
+}
+
+// 計算する式・途中式に埋め込むインライン分数HTML
+function inlineFracHTML(num, den) {
+  const sign = num < 0 ? '<span class="ifrac-sign"></span>' : '';
+  return `${sign}<span class="inline-frac"><span class="ifn">${Math.abs(num)}</span><span class="ifd">${den}</span></span>`;
+}
+// 演算子直後など、負の分数にはかっこをつける
+function inlineFracHTMLMayWrap(num, den) {
+  const html = inlineFracHTML(num, den);
+  return num < 0 ? `(${html})` : html;
+}
+
+function formatInnerTile(it, isFirst) {
+  if (it.type === 'pow') {
+    const expStr = it.exp === 2 ? '²' : '³';
+    if (it.negated) return `-${it.base}${expStr}`;
+    return isFirst ? `${it.base}${expStr}` : `+${it.base}${expStr}`;
+  }
+  if (it.type === 'mul') {
+    const l = isFirst ? String(it.left) : (it.left >= 0 ? '+' + it.left : String(it.left));
+    const r = it.right < 0 ? `(${it.right})` : String(it.right);
+    return `${l}${it.op}${r}`;
+  }
+  // simple
+  return isFirst ? String(it.value) : fmt(it.value);
+}
 
 function tileStyle(n) {
   if (n > 0) return { bg: 'linear-gradient(135deg,#065f46,#059669)', border: '#34d399', shadow: 'rgba(5,150,105,0.45)', text: '#d1fae5' };
@@ -730,38 +1100,103 @@ function loadPreset(expr) {
   startGame();
 }
 
-function startGame() {
-  const expr = document.getElementById('expr-input').value;
-  const terms = parseExpr(expr);
-  if (terms.length < 2) { alert('2項以上の式を入力してください'); return; }
-
-  tiles = terms.map(t => {
+function buildTiles(terms) {
+  return terms.map(t => {
     if (t.type === 'sign') return { id: idCtr++, type: 'sign', op: t.op };
     if (t.type === 'mul') {
       const tile = { id: idCtr++, type: 'mul', op: t.op || '×', left: t.left, revealed: false };
       if (t.rightFrac) tile.rightFrac = t.rightFrac;
+      else if (t.rightPow) tile.rightPow = { ...t.rightPow };
       else tile.right = t.right;
       return tile;
     }
-    if (t.type === 'pow') return { id: idCtr++, type: 'pow', base: t.base, exp: t.exp };
+    if (t.type === 'pow') return { id: idCtr++, type: 'pow', base: t.base, exp: t.exp, negated: !!t.negated, op: t.op || null };
+    if (t.type === 'group_mul') return {
+      id: idCtr++, type: 'group_mul',
+      bracket: t.bracket || '(',
+      innerTiles: t.innerTiles.map(it => {
+        if (it.type === 'pow') return { id: idCtr++, type: 'pow', base: it.base, exp: it.exp, negated: !!it.negated };
+        if (it.type === 'mul') return { id: idCtr++, type: 'mul', op: it.op || '×', left: it.left, right: it.right, revealed: false };
+        return { id: idCtr++, type: 'simple', value: it.value };
+      }),
+      op: t.op || '×',
+      right: t.right !== undefined ? t.right : null,
+      rightFrac: t.rightFrac || null
+    };
+    if (t.type === 'group_right') return {
+      id: idCtr++, type: 'group_right',
+      bracket: t.bracket || '(',
+      left: t.left,
+      op: t.op || '÷',
+      innerTiles: t.innerTiles.map(it => {
+        if (it.type === 'pow') return { id: idCtr++, type: 'pow', base: it.base, exp: it.exp, negated: !!it.negated };
+        if (it.type === 'mul') return { id: idCtr++, type: 'mul', op: it.op || '×', left: it.left, right: it.right, revealed: false };
+        return { id: idCtr++, type: 'simple', value: it.value };
+      })
+    };
     return { id: idCtr++, type: 'simple', value: t.value };
   });
+}
+
+function startGame() {
+  const expr = document.getElementById('expr-input').value;
+  const terms = parseExpr(expr);
+  if (terms.length === 0) { alert('式を入力してください'); return; }
+  // group_mul / group_right は1タームでも内側に複数タイルがある多ステップ問題なのでOK
+  const hasGroup = terms.some(t => t.type === 'group_mul' || t.type === 'group_right');
+  if (!hasGroup && terms.length < 2) { alert('2項以上の式を入力してください'); return; }
+
+  lastGameType = null; // 手動入力はタイプなし
+  updateGameTypeLabel(null);
+  currentAnswer = computeAnswer(terms); // 暗算解答用に答えを保存
+  showPanel(); // 新問題のたびにパネルを表示状態に戻す
+  tiles = buildTiles(terms);
   stepCount = 0;
   history   = [];
   updateUndoBtn();
 
   const exprStr = formatExprDisplay(terms);
   document.getElementById('steps-list').innerHTML = '';
-  document.getElementById('expr-display').innerHTML =
-    '計算する式：<span>' + exprStr + '</span>';
+  document.getElementById('expr-display').innerHTML = exprStr;
 
   // Show original as first line of step chain
   const orig = document.createElement('span');
   orig.className = 'step-line original';
-  orig.textContent = exprStr;
+  orig.innerHTML = exprStr;
   document.getElementById('steps-list').appendChild(orig);
 
   render();
+}
+
+function startGameFromTerms(terms) {
+  innerDragId = null; innerDragGroupId = null;
+  lastTerms = JSON.parse(JSON.stringify(terms)); // もう一度用に保存
+  updateGameTypeLabel(lastGameType); // 問題種別ラベルを更新
+  currentAnswer = computeAnswer(terms); // 暗算解答用に答えを保存
+  showPanel(); // 新問題のたびにパネルを表示状態に戻す
+  tiles = buildTiles(terms);
+  stepCount = 0;
+  history   = [];
+  updateUndoBtn();
+
+  const exprStr = formatExprDisplay(terms);
+  document.getElementById('steps-list').innerHTML = '';
+  document.getElementById('expr-display').innerHTML = exprStr;
+
+  const orig = document.createElement('span');
+  orig.className = 'step-line original';
+  orig.innerHTML = exprStr;
+  document.getElementById('steps-list').appendChild(orig);
+
+  render();
+}
+
+function restartGame() {
+  if (lastTerms) {
+    startGameFromTerms(JSON.parse(JSON.stringify(lastTerms)));
+  } else {
+    startGame();
+  }
 }
 
 function formatExprDisplay(terms) {
@@ -771,21 +1206,56 @@ function formatExprDisplay(terms) {
     const t = terms[i];
     if (t.type === 'sign') {
       // 符号と次の値を 1 つにまとめて表示: -(−4) / +(+3)
+      // 式の先頭に来る「+」符号は省略: +(+5) → (+5)
       const next = terms[i + 1];
       if (next && next.type === 'simple') {
         const valStr = next.value >= 0 ? `+${next.value}` : String(next.value);
-        parts.push(`${t.op}(${valStr})`);
+        const prefix = (parts.length === 0 && t.op === '+') ? '' : t.op;
+        parts.push(`${prefix}(${valStr})`);
         i += 2; continue;
       }
       parts.push(t.op);
     } else if (t.type === 'mul') {
       const l = parts.length === 0 ? String(t.left) : (t.left >= 0 ? '+' + t.left : String(t.left));
-      if (t.rightFrac) parts.push(`${l}${t.op}(${t.rightFrac.num}/${t.rightFrac.den})`);
-      else parts.push(`${l}${t.op || '×'}(${t.right})`);
+      if (t.rightFrac) {
+        parts.push(`${l}${t.op}${inlineFracHTMLMayWrap(t.rightFrac.num, t.rightFrac.den)}`);
+      } else if (t.rightPow) {
+        const rp = t.rightPow;
+        const sup = rp.exp === 2 ? '²' : '³';
+        const rpStr = rp.negated ? `(-${Math.abs(rp.base)}${sup})`
+          : (rp.base < 0 ? `(${rp.base})${sup}` : `${rp.base}${sup}`);
+        parts.push(`${l}${t.op || '×'}${rpStr}`);
+      } else {
+        parts.push(t.right < 0 ? `${l}${t.op || '×'}(${t.right})` : `${l}${t.op || '×'}${t.right}`);
+      }
     } else if (t.type === 'pow') {
-      const baseStr = t.base < 0 ? `(${t.base})` : String(t.base);
-      // 式の途中に ( ) が来る場合は必ず前に演算子を付ける
-      parts.push(parts.length === 0 ? `${baseStr}^${t.exp}` : `+${baseStr}^${t.exp}`);
+      const sup = t.exp === 2 ? '²' : '³';
+      if (t.negated) {
+        parts.push(`-${t.base}${sup}`);
+      } else {
+        const baseStr = t.base < 0 ? `(${t.base})` : String(t.base);
+        if (parts.length === 0) {
+          parts.push(`${baseStr}${sup}`);
+        } else {
+          const prefix = t.op || '+';
+          parts.push(`${prefix}${baseStr}${sup}`);
+        }
+      }
+    } else if (t.type === 'group_mul') {
+      const bO = t.bracket === '{' ? '{' : '(';
+      const bC = t.bracket === '{' ? '}' : ')';
+      const inner = t.innerTiles.map((it, i) => formatInnerTile(it, i === 0)).join('');
+      const rightStr = t.rightFrac
+        ? inlineFracHTMLMayWrap(t.rightFrac.num, t.rightFrac.den)
+        : (t.right !== null && t.right < 0) ? `(${t.right})` : String(t.right);
+      const prefix = parts.length > 0 ? '+' : '';
+      parts.push(`${prefix}${bO}${inner}${bC}${t.op || '×'}${rightStr}`);
+    } else if (t.type === 'group_right') {
+      const bO = t.bracket === '{' ? '{' : '(';
+      const bC = t.bracket === '{' ? '}' : ')';
+      const inner = t.innerTiles.map((it, i) => formatInnerTile(it, i === 0)).join('');
+      const leftStr = parts.length === 0 ? String(t.left) : (t.left >= 0 ? `+${t.left}` : String(t.left));
+      parts.push(`${leftStr}${t.op || '÷'}${bO}${inner}${bC}`);
     } else { // simple
       if (parts.length === 0) parts.push(String(t.value));
       else parts.push(t.value >= 0 ? `+${t.value}` : String(t.value));
@@ -797,6 +1267,8 @@ function formatExprDisplay(terms) {
 
 /* ---- Render ---- */
 function render(newId = null) {
+  purgeGhost(); // アニメーション完了タイミングで render が呼ばれた際の残留ゴーストをクリーンアップ
+  dragId = null;
   const area = document.getElementById('game-area');
   area.innerHTML = '';
 
@@ -807,7 +1279,17 @@ function render(newId = null) {
     } else if (tile.type === 'mul') {
       createMulSubEls(tile, tile.id === newId).forEach(el => { if (el) area.appendChild(el); });
     } else if (tile.type === 'pow') {
+      // 括弧ありの累乗（base < 0）が式の途中に来る場合、左に演算子ボタンを表示
+      if (idx > 0 && tile.base < 0) {
+        area.appendChild(createPowOpBtn(tile));
+      }
       area.appendChild(createPowTileEl(tile, tile.id === newId));
+    } else if (tile.type === 'group_mul') {
+      area.appendChild(createGroupMulEl(tile, tile.id === newId));
+    } else if (tile.type === 'group_right') {
+      area.appendChild(createGroupRightEl(tile, tile.id === newId));
+    } else if (tile.type === 'frac') {
+      area.appendChild(createFracTileEl(tile, tile.id === newId));
     } else {
       // 符号タイルの直後は (＋5) のようにカッコ付きで表示
       const inParens = prevTile?.type === 'sign';
@@ -816,24 +1298,615 @@ function render(newId = null) {
   });
 
   const rem = document.getElementById('remaining');
-  const mulCount  = tiles.filter(t => t.type === 'mul').length;
-  const powCount  = tiles.filter(t => t.type === 'pow').length;
-  const signCount = tiles.filter(t => t.type === 'sign').length;
-  const simCount  = tiles.filter(t => t.type === 'simple').length;
+  const mulCount    = tiles.filter(t => t.type === 'mul').length;
+  const powCount    = tiles.filter(t => t.type === 'pow').length;
+  const signCount   = tiles.filter(t => t.type === 'sign').length;
+  const simCount    = tiles.filter(t => t.type === 'simple').length;
+  const groupCount  = tiles.filter(t => (t.type === 'group_mul' || t.type === 'group_right') && t.innerTiles.length > 1).length;
 
-  if (powCount > 0) {
+  if (groupCount > 0) {
+    rem.innerHTML = `<b style="color:#a78bfa">（　）</b> の中のカードを先にまとめよう！`;
+  } else if (powCount > 0) {
     rem.innerHTML = `<b style="color:#c4b5fd">指数</b> をクリックして累乗を計算しよう！`;
   } else if (mulCount > 0 && tiles.some(t => t.type === 'mul' && t.revealed)) {
     rem.innerHTML = `<b style="color:#fbbf24">×</b> ボタンを押してかけ算を解決しよう！`;
   } else if (signCount > 0) {
     rem.innerHTML = `<b style="color:#f59e0b">（　）</b> の左にある <b style="color:#f59e0b">＋ / −</b> をクリックして符号を統合しよう！`;
-  } else if (simCount > 1 || (simCount >= 1 && mulCount === 0)) {
-    rem.innerHTML = simCount > 1
-      ? `残り <b>${simCount}</b> 項 — あと <b>${simCount - 1}</b> 回たし合わせられます`
-      : '';
   } else {
     rem.innerHTML = '';
   }
+}
+
+/* ---- Group-mul tile element ---- */
+function createGroupMulEl(tile, isNew) {
+  const wrap = document.createElement('div');
+  wrap.className = 'group-mul-wrap' + (isNew ? ' new' : '');
+  wrap.dataset.groupid = tile.id;
+
+  const bO = tile.bracket === '{' ? '{' : '(';
+  const bC = tile.bracket === '{' ? '}' : ')';
+
+  // Opening bracket
+  const openB = document.createElement('span');
+  openB.className = 'group-bracket';
+  openB.textContent = bO;
+  wrap.appendChild(openB);
+
+  // Inner tiles area
+  const inner = document.createElement('div');
+  inner.className = 'group-inner';
+  tile.innerTiles.forEach((it, i) => {
+    const isFirst = i === 0;
+    if (it.type === 'pow') {
+      inner.appendChild(createInnerPowEl(it, tile.id, isFirst));
+    } else if (it.type === 'mul') {
+      inner.appendChild(createInnerMulEl(it, tile.id, isFirst));
+    } else {
+      const itEl = document.createElement('div');
+      itEl.className = `tile ${colorClass(it.value)} inner-tile`;
+      itEl.dataset.innerid = it.id;
+      itEl.dataset.groupid = tile.id;
+      itEl.textContent = isFirst ? String(it.value) : fmt(it.value);
+      itEl.addEventListener('pointerdown', onInnerPointerDown, { passive: false });
+      inner.appendChild(itEl);
+    }
+  });
+  wrap.appendChild(inner);
+
+  // Closing bracket
+  const closeB = document.createElement('span');
+  closeB.className = 'group-bracket';
+  closeB.textContent = bC;
+  wrap.appendChild(closeB);
+
+  // Operator label
+  const opLbl = document.createElement('span');
+  opLbl.className = 'group-op-label';
+  opLbl.textContent = tile.op === '÷' ? '÷' : '×';
+  wrap.appendChild(opLbl);
+
+  // Right operand tile
+  const rightColor = tile.rightFrac
+    ? (tile.rightFrac.num < 0 ? 'negative' : 'positive')
+    : colorClass(tile.right);
+  const rightEl = document.createElement('div');
+  rightEl.className = `tile ${rightColor} group-right-tile`;
+  rightEl.dataset.groupid = tile.id;
+  if (tile.rightFrac) {
+    rightEl.style.display = 'flex';
+    rightEl.style.alignItems = 'center';
+    rightEl.style.gap = '2px';
+    const isNegFrac = tile.rightFrac.num < 0;
+    if (isNegFrac) {
+      const lp = document.createElement('span');
+      lp.textContent = '(';
+      lp.style.cssText = 'font-size:1.1em;font-weight:900;line-height:1;';
+      rightEl.appendChild(lp);
+      const mline = document.createElement('span');
+      mline.className = 'frac-minus-line';
+      rightEl.appendChild(mline);
+    }
+    const fd = document.createElement('div');
+    fd.className = 'frac-display';
+    fd.innerHTML = `<span class="frac-num">${Math.abs(tile.rightFrac.num)}</span><span class="frac-den">${tile.rightFrac.den}</span>`;
+    rightEl.appendChild(fd);
+    if (isNegFrac) {
+      const rp = document.createElement('span');
+      rp.textContent = ')';
+      rp.style.cssText = 'font-size:1.1em;font-weight:900;line-height:1;';
+      rightEl.appendChild(rp);
+    }
+  } else {
+    rightEl.textContent = tile.right < 0 ? String(tile.right) : String(tile.right);
+  }
+  rightEl.addEventListener('click', () => {
+    if (tile.innerTiles.length > 1 || tile.innerTiles.some(it => it.type !== 'simple')) {
+      showTooltip(rightEl, '⚡ （　）の中を先に計算しよう！');
+      inner.querySelectorAll('.tile').forEach(e => shakeEl(e));
+    }
+  });
+  wrap.appendChild(rightEl);
+
+  return wrap;
+}
+
+/* ---- Fraction result tile ---- */
+function createFracTileEl(tile, isNew) {
+  const el = document.createElement('div');
+  const clr = tile.num >= 0 ? 'positive' : 'negative';
+  el.className = `tile ${clr}` + (isNew ? ' new' : '');
+  el.dataset.id = tile.id;
+  el.style.cssText += 'cursor:default;pointer-events:none;display:flex;align-items:center;gap:3px;';
+
+  if (tile.num < 0) {
+    const mline = document.createElement('span');
+    mline.className = 'frac-minus-line';
+    el.appendChild(mline);
+  }
+
+  const fd = document.createElement('div');
+  fd.className = 'frac-display';
+  fd.innerHTML = `<span class="frac-num">${Math.abs(tile.num)}</span><span class="frac-den">${tile.den}</span>`;
+  el.appendChild(fd);
+  return el;
+}
+
+/* ---- Group-right tile element: left op (inner) ---- */
+function createGroupRightEl(tile, isNew) {
+  const wrap = document.createElement('div');
+  wrap.className = 'group-mul-wrap' + (isNew ? ' new' : '');
+  wrap.dataset.groupid = tile.id;
+
+  const bO = tile.bracket === '{' ? '{' : '(';
+  const bC = tile.bracket === '{' ? '}' : ')';
+
+  // Left operand tile
+  const leftEl = document.createElement('div');
+  leftEl.className = `tile ${colorClass(tile.left)} group-right-tile`;
+  leftEl.dataset.groupid = tile.id;
+  leftEl.textContent = String(tile.left);
+  leftEl.addEventListener('click', () => {
+    if (tile.innerTiles.length > 1 || tile.innerTiles.some(it => it.type !== 'simple')) {
+      showTooltip(leftEl, '⚡ （　）の中を先に計算しよう！');
+      inner.querySelectorAll('.tile').forEach(e => shakeEl(e));
+    }
+  });
+  wrap.appendChild(leftEl);
+
+  // Operator label
+  const opLbl = document.createElement('span');
+  opLbl.className = 'group-op-label';
+  opLbl.textContent = tile.op === '÷' ? '÷' : '×';
+  wrap.appendChild(opLbl);
+
+  // Opening bracket
+  const openB = document.createElement('span');
+  openB.className = 'group-bracket';
+  openB.textContent = bO;
+  wrap.appendChild(openB);
+
+  // Inner tiles area
+  const inner = document.createElement('div');
+  inner.className = 'group-inner';
+  tile.innerTiles.forEach((it, i) => {
+    const isFirst = i === 0;
+    if (it.type === 'pow') {
+      inner.appendChild(createInnerPowEl(it, tile.id, isFirst));
+    } else if (it.type === 'mul') {
+      inner.appendChild(createInnerMulEl(it, tile.id, isFirst));
+    } else {
+      const itEl = document.createElement('div');
+      itEl.className = `tile ${colorClass(it.value)} inner-tile`;
+      itEl.dataset.innerid = it.id;
+      itEl.dataset.groupid = tile.id;
+      itEl.textContent = isFirst ? String(it.value) : fmt(it.value);
+      itEl.addEventListener('pointerdown', onInnerPointerDown, { passive: false });
+      inner.appendChild(itEl);
+    }
+  });
+  wrap.appendChild(inner);
+
+  // Closing bracket
+  const closeB = document.createElement('span');
+  closeB.className = 'group-bracket';
+  closeB.textContent = bC;
+  wrap.appendChild(closeB);
+
+  return wrap;
+}
+
+/* ---- Inner pow tile ---- */
+function createInnerPowEl(it, groupId, isFirst) {
+  const clr = it.negated ? 'negative' : colorClass(it.base);
+  const el = document.createElement('div');
+  el.className = `tile pow-tile ${clr}`;
+  el.dataset.innerid = it.id;
+  el.dataset.groupid = groupId;
+  if (it.negated) {
+    el.textContent = `-${it.base}`;
+  } else {
+    el.textContent = isFirst ? (it.base < 0 ? `(${it.base})` : String(it.base))
+                             : (it.base < 0 ? `(${it.base})` : `+${it.base}`);
+  }
+
+  // バッジはタイルの子要素として追加（position:absoluteの基準点がtileになる）
+  const badge = document.createElement('span');
+  badge.className = 'pow-exp-btn';
+  badge.textContent = it.exp === 2 ? '²' : '³';
+  badge.title = '指数をクリックして累乗を計算';
+  badge.addEventListener('click', (e) => { e.stopPropagation(); animateInnerPowExpand(groupId, it.id); });
+  el.appendChild(badge);
+
+  el.addEventListener('click', (e) => {
+    if (e.target === badge) return;
+    showTooltip(el, '⚡ 累乗を計算しよう（指数をクリック）');
+  });
+
+  return el;
+}
+
+/* ---- Inner mul tile ---- */
+function createInnerMulEl(it, groupId, isFirst) {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;align-items:center;gap:6px;';
+
+  const leftEl = document.createElement('div');
+  leftEl.className = `tile ${colorClass(it.left)} mul-sub`;
+  leftEl.textContent = isFirst ? String(it.left) : (it.left >= 0 ? `+${it.left}` : String(it.left));
+
+  const connEl = document.createElement('button');
+  connEl.className = 'mul-connector-btn';
+  connEl.textContent = it.op === '÷' ? '÷' : '×';
+
+  const rightEl = document.createElement('div');
+  rightEl.className = `tile ${colorClass(it.right)} mul-sub`;
+  rightEl.textContent = it.right >= 0 ? String(it.right) : `(${it.right})`;
+
+  const shakeBoth = () => { shakeEl(leftEl); shakeEl(rightEl); };
+  leftEl.addEventListener('click',  () => { shakeBoth(); showTooltip(leftEl,  `⚡ 「${connEl.textContent}」をクリックして計算しよう！`); });
+  rightEl.addEventListener('click', () => { shakeBoth(); showTooltip(rightEl, `⚡ 「${connEl.textContent}」をクリックして計算しよう！`); });
+  connEl.addEventListener('click',  () => resolveInnerMul(groupId, it.id));
+
+  wrap.appendChild(leftEl);
+  wrap.appendChild(connEl);
+  wrap.appendChild(rightEl);
+  return wrap;
+}
+
+/* ---- Inner pow expand animation ---- */
+function animateInnerPowExpand(groupId, innerId) {
+  const tileEl = document.querySelector(`.tile.pow-tile[data-innerid="${innerId}"][data-groupid="${groupId}"]`);
+  if (!tileEl) { resolveInnerPow(groupId, innerId); return; }
+
+  const groupTile = tiles.find(t => t.id === groupId);
+  if (!groupTile) return;
+  const idx = groupTile.innerTiles.findIndex(t => t.id === innerId);
+  if (idx === -1) return;
+  const it = groupTile.innerTiles[idx];
+
+  const exp      = it.exp;
+  const rect     = tileEl.getBoundingClientRect();
+  const baseText = it.base < 0 ? `(${it.base})` : String(it.base);
+  const colorCls = it.negated ? 'negative' : colorClass(it.base);
+
+  pushHistory();
+
+  tileEl.style.visibility  = 'hidden';
+  tileEl.style.pointerEvents = 'none';
+
+  const SPREAD   = 180;
+  const PAUSE    = 180;
+  const COLLAPSE = 200;
+  const gap = exp === 2 ? 80 : 64;
+
+  const copies = [];
+  for (let i = 0; i < exp; i++) {
+    const copy = document.createElement('div');
+    let copyText, copyCls;
+    if (it.base < 0) {
+      copyText = baseText; copyCls = colorCls;
+    } else if (it.negated) {
+      copyText = i === 0 ? `-${it.base}` : String(it.base);
+      copyCls  = i === 0 ? 'negative' : 'positive';
+    } else {
+      copyText = i === 0 ? `+${it.base}` : String(it.base);
+      copyCls  = colorCls;
+    }
+    copy.className = `tile ${copyCls}`;
+    copy.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;z-index:900;margin:0;pointer-events:none;`;
+    copy.textContent = copyText;
+    document.body.appendChild(copy);
+    copies.push(copy);
+  }
+
+  // × サイン
+  const mulSigns = [];
+  for (let i = 0; i < exp - 1; i++) {
+    const sign = document.createElement('div');
+    sign.style.cssText = `position:fixed;left:${rect.left + rect.width/2 - 17}px;top:${rect.top + rect.height/2 - 17}px;width:34px;height:34px;z-index:902;pointer-events:none;font-size:1.5em;font-weight:900;color:rgba(255,255,255,0.92);display:flex;align-items:center;justify-content:center;opacity:0;text-shadow:0 0 6px rgba(167,139,250,0.95);`;
+    sign.textContent = '×';
+    document.body.appendChild(sign);
+    mulSigns.push(sign);
+  }
+
+  // Phase 1: 広がる
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    copies.forEach((copy, i) => {
+      const offsetX = (i - (exp - 1) / 2) * gap;
+      copy.style.transition = `transform ${SPREAD}ms cubic-bezier(0.34,1.56,0.64,1)`;
+      copy.style.transform  = `translateX(${offsetX}px)`;
+    });
+  }));
+
+  // Phase 1.5: × フェードイン
+  setTimeout(() => {
+    mulSigns.forEach((sign, i) => {
+      const midX = (i + 0.5 - (exp - 1) / 2) * gap;
+      sign.style.transition = `transform 80ms ease, opacity 80ms ease`;
+      sign.style.transform  = `translateX(${midX}px)`;
+      sign.style.opacity    = '1';
+    });
+  }, SPREAD - 40);
+
+  // Phase 2: 中心に吸い寄せられて消える（× も同時にフェードアウト）
+  setTimeout(() => {
+    copies.forEach(copy => {
+      copy.style.transition = `transform ${COLLAPSE}ms ease-in, opacity ${Math.round(COLLAPSE*0.6)}ms ease-in ${Math.round(COLLAPSE*0.4)}ms`;
+      copy.style.transform  = 'translateX(0) scale(0.15)';
+      copy.style.opacity    = '0';
+    });
+    mulSigns.forEach(sign => {
+      sign.style.transition = `opacity ${Math.round(COLLAPSE * 0.5)}ms ease-in`;
+      sign.style.opacity    = '0';
+    });
+  }, SPREAD + PAUSE);
+
+  // Phase 3: 結果タイルに差し替え
+  setTimeout(() => {
+    copies.forEach(c => c.remove());
+    mulSigns.forEach(s => s.remove());
+    tileEl.style.visibility   = '';
+    tileEl.style.pointerEvents = '';
+
+    const result = it.negated ? -Math.pow(it.base, it.exp) : Math.pow(it.base, it.exp);
+    groupTile.innerTiles[idx] = { id: idCtr++, type: 'simple', value: result };
+    stepCount++;
+    addIntermediate();
+
+    if (groupTile.innerTiles.length === 1) {
+      resolveGroupTile(groupId);
+    } else {
+      render();
+    }
+  }, SPREAD + PAUSE + COLLAPSE + 50);
+}
+
+/* ---- Resolve inner pow ---- */
+function resolveInnerPow(groupId, innerId) {
+  pushHistory();
+  const groupTile = tiles.find(t => t.id === groupId);
+  if (!groupTile) return;
+  const idx = groupTile.innerTiles.findIndex(t => t.id === innerId);
+  if (idx === -1) return;
+  const pt = groupTile.innerTiles[idx];
+  const result = pt.negated ? -Math.pow(pt.base, pt.exp) : Math.pow(pt.base, pt.exp);
+  groupTile.innerTiles[idx] = { id: idCtr++, type: 'simple', value: result };
+  stepCount++;
+  addIntermediate();
+  render();
+}
+
+/* ---- Resolve inner mul ---- */
+function resolveInnerMul(groupId, innerId) {
+  pushHistory();
+  const groupTile = tiles.find(t => t.id === groupId);
+  if (!groupTile) return;
+  const idx = groupTile.innerTiles.findIndex(t => t.id === innerId);
+  if (idx === -1) return;
+  const mt = groupTile.innerTiles[idx];
+  const result = mt.op === '÷' ? mt.left / mt.right : mt.left * mt.right;
+  groupTile.innerTiles[idx] = { id: idCtr++, type: 'simple', value: result };
+  stepCount++;
+  addIntermediate();
+  if (groupTile.innerTiles.length === 1) {
+    resolveGroupTile(groupId);
+  } else {
+    render();
+  }
+}
+
+/* ---- Inner tile drag & drop ---- */
+function onInnerPointerDown(e) {
+  if (e.button !== undefined && e.button !== 0) return;
+  e.preventDefault();
+
+  const el = e.currentTarget;
+  const innerId  = parseInt(el.dataset.innerid);
+  const groupId  = parseInt(el.dataset.groupid);
+
+  const groupTile = tiles.find(t => t.id === groupId);
+  if (!groupTile || groupTile.innerTiles.length < 2) return;
+  const innerTile = groupTile.innerTiles.find(t => t.id === innerId);
+  if (!innerTile) return;
+
+  // 累乗・乗除が残っているときは先にそちらを処理させる
+  if (groupTile.innerTiles.some(it => it.type === 'pow')) {
+    showTooltip(el, '⚡ 累乗を先に計算しよう！（指数をクリック）');
+    return;
+  }
+  if (groupTile.innerTiles.some(it => it.type === 'mul')) {
+    showTooltip(el, '⚡ ×÷を先に計算しよう！（演算子をクリック）');
+    return;
+  }
+
+  innerDragId      = innerId;
+  innerDragGroupId = groupId;
+
+  el.setPointerCapture(e.pointerId);
+
+  const s = tileStyle(innerTile.value);
+  ghostEl = document.createElement('div');
+  ghostEl.className = 'ghost';
+  ghostEl.textContent = fmt(innerTile.value);
+  ghostEl.style.background  = s.bg;
+  ghostEl.style.borderColor = s.border;
+  ghostEl.style.color       = s.text;
+  ghostEl.style.boxShadow   = `0 16px 48px ${s.shadow}`;
+  document.body.appendChild(ghostEl);
+
+  el.classList.add('dragging');
+  positionGhost(e.clientX, e.clientY);
+
+  el.addEventListener('pointermove',        onInnerPointerMove,  { passive: false });
+  el.addEventListener('pointerup',          onInnerPointerUp);
+  el.addEventListener('pointercancel',      onInnerPointerCancel);
+  el.addEventListener('lostpointercapture', () => { endInnerDrag(el); innerDragId = null; innerDragGroupId = null; });
+}
+
+function onInnerPointerMove(e) {
+  e.preventDefault();
+  positionGhost(e.clientX, e.clientY);
+  document.querySelectorAll('.inner-tile.drop-target').forEach(el => el.classList.remove('drop-target'));
+  const under = innerTileUnderPoint(e.clientX, e.clientY);
+  if (under) under.classList.add('drop-target');
+}
+
+function onInnerPointerUp(e) {
+  e.preventDefault();
+  const under = innerTileUnderPoint(e.clientX, e.clientY);
+  const fromId  = innerDragId;
+  const groupId = innerDragGroupId;
+  endInnerDrag(e.currentTarget);
+  if (under) {
+    const toId = parseInt(under.dataset.innerid);
+    if (toId !== fromId) combineInner(groupId, fromId, toId);
+  }
+}
+
+function onInnerPointerCancel(e) { endInnerDrag(e.currentTarget); }
+
+function endInnerDrag(el) {
+  el.classList.remove('dragging');
+  el.removeEventListener('pointermove',   onInnerPointerMove);
+  el.removeEventListener('pointerup',     onInnerPointerUp);
+  el.removeEventListener('pointercancel', onInnerPointerCancel);
+  document.querySelectorAll('.inner-tile.drop-target').forEach(t => t.classList.remove('drop-target'));
+  purgeGhost();
+  innerDragId = null;
+  innerDragGroupId = null;
+}
+
+function innerTileUnderPoint(x, y) {
+  if (ghostEl) ghostEl.style.display = 'none';
+  const el = document.elementFromPoint(x, y);
+  if (ghostEl) ghostEl.style.display = '';
+  if (!el) return null;
+  const tileEl = el.closest('.inner-tile');
+  if (tileEl && parseInt(tileEl.dataset.innerid) !== innerDragId) return tileEl;
+  return null;
+}
+
+function combineInner(groupId, id1, id2) {
+  pushHistory();
+  const groupTile = tiles.find(t => t.id === groupId);
+  if (!groupTile) return;
+
+  const i1 = groupTile.innerTiles.findIndex(t => t.id === id1);
+  const i2 = groupTile.innerTiles.findIndex(t => t.id === id2);
+  if (i1 === -1 || i2 === -1) return;
+
+  const newVal = groupTile.innerTiles[i1].value + groupTile.innerTiles[i2].value;
+  const keepIdx   = Math.min(i1, i2);
+  const removeIdx = Math.max(i1, i2);
+
+  const zeroId = idCtr++;
+  groupTile.innerTiles[keepIdx] = { id: zeroId, value: newVal };
+  groupTile.innerTiles.splice(removeIdx, 1);
+  stepCount++;
+
+  // ── 合計が 0 になった場合 ─────────────────────────────────
+  if (newVal === 0) {
+    if (groupTile.innerTiles.length > 1) {
+      // かっこ内にまだ他のタイルがある → 0 を一瞬表示してフェード消滅
+      addIntermediate();
+      render();
+      setTimeout(() => {
+        const zeroInnerEl = document.querySelector(`.inner-tile[data-innerid="${zeroId}"]`);
+        if (zeroInnerEl) zeroInnerEl.classList.add('zero-vanish');
+        setTimeout(() => {
+          const zIdx = groupTile.innerTiles.findIndex(t => t.id === zeroId);
+          if (zIdx !== -1) groupTile.innerTiles.splice(zIdx, 1);
+          if (groupTile.innerTiles.length === 1) resolveGroupTile(groupId);
+          else render();
+        }, 600);
+      }, 350);
+    } else {
+      // 最後の 1 タイルが 0 → グループ全体が 0 → 外側タイルとして消滅
+      const gIdx = tiles.findIndex(t => t.id === groupId);
+      const newSimpleId = idCtr++;
+      tiles[gIdx] = { id: newSimpleId, type: 'simple', value: 0 };
+
+      if (tiles.length === 1) {
+        addIntermediate();
+        render(newSimpleId);
+        setTimeout(() => showWin(0, stepCount), 600);
+      } else {
+        render(newSimpleId);
+        setTimeout(() => {
+          const zeroEl = document.querySelector(`.tile[data-id="${newSimpleId}"]`);
+          if (zeroEl) zeroEl.classList.add('zero-vanish');
+        }, 420);
+        setTimeout(() => {
+          const rIdx = tiles.findIndex(t => t.id === newSimpleId);
+          if (rIdx === -1) return;
+          tiles.splice(rIdx, 1);
+          addIntermediate();
+          render();
+          if (tiles.length === 1 && tiles[0].type === 'simple') {
+            setTimeout(() => showWin(tiles[0].value, stepCount), 550);
+          }
+        }, 1000);
+      }
+    }
+    return;
+  }
+
+  if (groupTile.innerTiles.length === 1) {
+    resolveGroupTile(groupId);
+  } else {
+    addIntermediate();
+    render();
+  }
+}
+
+function resolveGroupMul(groupId) {
+  const idx = tiles.findIndex(t => t.id === groupId);
+  if (idx === -1) return;
+  const tile = tiles[idx];
+  const innerVal = tile.innerTiles[0].value;
+
+  // かっこが解決 → 通常の mul タイルに変換（ユーザーが × / ÷ を処理）
+  const newMul = {
+    id: idCtr++,
+    type: 'mul',
+    op: tile.op || '×',
+    left: innerVal,
+    revealed: false
+  };
+  if (tile.rightFrac) newMul.rightFrac = tile.rightFrac;
+  else newMul.right = tile.right;
+
+  tiles[idx] = newMul;
+  addIntermediate();
+  render(newMul.id);
+}
+
+function resolveGroupRight(groupId) {
+  const idx = tiles.findIndex(t => t.id === groupId);
+  if (idx === -1) return;
+  const tile = tiles[idx];
+  const innerVal = tile.innerTiles[0].value;
+
+  // （左）op（かっこ内合計）→ mul タイルに変換
+  const newMul = {
+    id: idCtr++,
+    type: 'mul',
+    op: tile.op || '÷',
+    left: tile.left,
+    right: innerVal,
+    revealed: false
+  };
+  tiles[idx] = newMul;
+  addIntermediate();
+  render(newMul.id);
+}
+
+// group_mul / group_right を統一解決
+function resolveGroupTile(groupId) {
+  const tile = tiles.find(t => t.id === groupId);
+  if (!tile) return;
+  if (tile.type === 'group_right') resolveGroupRight(groupId);
+  else resolveGroupMul(groupId);
 }
 
 /* ---- Sign tile element ---- */
@@ -942,32 +2015,167 @@ function createSimpleTileEl(tile, isNew, inParens = false) {
   return el;
 }
 
+/* 括弧ありの累乗タイルの左に表示する演算子ボタン */
+function createPowOpBtn(tile) {
+  const btn = document.createElement('button');
+  btn.className = 'pow-op-btn';
+  btn.textContent = tile.op === '-' ? '－' : '＋';
+  btn.title = '累乗を先に計算しよう';
+  btn.addEventListener('click', () => {
+    showTooltip(btn, '⚡ 累乗を先に計算しよう！（指数をクリック）');
+  });
+  return btn;
+}
+
 /* Pow tile — colored tile with clickable exponent badge */
 function createPowTileEl(tile, isNew) {
   const el = document.createElement('div');
-  el.className = 'tile pow-tile ' + colorClass(tile.base) + (isNew ? ' new' : '');
+  // negated タイル（-base^exp）は常に negative（赤）で表示
+  const clr = tile.negated ? 'negative' : colorClass(tile.base);
+  el.className = 'tile pow-tile ' + clr + (isNew ? ' new' : '');
   el.dataset.id = tile.id;
 
   // Base number display
-  el.textContent = tile.base < 0 ? '(' + tile.base + ')' : '+' + tile.base;
+  if (tile.negated) {
+    el.textContent = '-' + tile.base;          // -2^3 → 表示: "-2"
+  } else {
+    el.textContent = tile.base < 0 ? '(' + tile.base + ')' : '+' + tile.base;
+  }
 
   // Exponent badge
   const badge = document.createElement('span');
   badge.className = 'pow-exp-btn';
   badge.textContent = tile.exp === 2 ? '²' : '³';
-  badge.title = `クリックして ${tile.base}^${tile.exp} を計算`;
+  const expTitle = tile.negated ? `-${tile.base}^${tile.exp}` : `${tile.base}^${tile.exp}`;
+  badge.title = `クリックして ${expTitle} を計算`;
   badge.addEventListener('click', (e) => {
     e.stopPropagation();
-    resolvePow(tile.id);
+    animatePowExpand(tile.id);
   });
   el.appendChild(badge);
 
   el.addEventListener('click', (e) => {
     if (e.target === badge) return;
-    showTooltip(el, '⚡ まずは累乗から処理しよう（指数をクリック）');
+    showTooltip(el, '⚡ 累乗を計算しよう（指数をクリック）');
   });
 
   return el;
+}
+
+/* ---- 累乗展開アニメーション ---- */
+function animatePowExpand(tileId) {
+  const tileEl = document.querySelector(`.tile[data-id="${tileId}"]`);
+  if (!tileEl) { resolvePow(tileId); return; }
+
+  const idx = tiles.findIndex(t => t.id === tileId);
+  if (idx === -1 || tiles[idx].type !== 'pow') return;
+
+  const tile  = tiles[idx];
+  const exp   = tile.exp; // 2 or 3
+  const rect  = tileEl.getBoundingClientRect();
+  // 括弧ありの負数: (base)、それ以外（正数・negated）: 符号なしで数字のみ表示
+  const baseText = tile.base < 0 ? `(${tile.base})` : String(tile.base);
+  const colorCls = tile.negated ? 'negative' : colorClass(tile.base);
+
+  pushHistory();
+
+  // 元タイルを非表示（レイアウトは維持）
+  tileEl.style.visibility = 'hidden';
+  tileEl.style.pointerEvents = 'none';
+
+  const SPREAD   = 180; // 広がる時間 ms
+  const PAUSE    = 180; // × を見せる停止時間 ms
+  const COLLAPSE = 200; // 集まる時間 ms
+  const gap = exp === 2 ? 80 : 64; // コピー間隔
+
+  // exp 枚のコピーを元タイルの位置に重ねて生成
+  // negated（括弧なし）の場合: 一番左のコピーだけ "-base"（赤）、残りは "base"（緑）
+  const copies = [];
+  for (let i = 0; i < exp; i++) {
+    const copy = document.createElement('div');
+    let copyText, copyCls;
+    if (tile.base < 0) {
+      // 括弧ありの負数: 全コピー同じ "(base)"
+      copyText = baseText;
+      copyCls  = colorCls;
+    } else if (tile.negated) {
+      // 括弧なし負符号（-2^3）: 左端だけ "-base"（赤）、残りは "base"（緑）
+      copyText = i === 0 ? `-${tile.base}` : String(tile.base);
+      copyCls  = i === 0 ? 'negative' : 'positive';
+    } else {
+      // 括弧なし正数（3^2, +2^3）: 左端だけ "+base"、残りは "base"（全て緑）
+      copyText = i === 0 ? `+${tile.base}` : String(tile.base);
+      copyCls  = colorCls;
+    }
+    copy.className = `tile ${copyCls}`;
+    copy.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;z-index:900;margin:0;pointer-events:none;`;
+    copy.textContent = copyText;
+    document.body.appendChild(copy);
+    copies.push(copy);
+  }
+
+  // exp-1 個の「×」サインを生成（カード境目に表示）
+  const mulSigns = [];
+  for (let i = 0; i < exp - 1; i++) {
+    const sign = document.createElement('div');
+    sign.style.cssText = `position:fixed;left:${rect.left + rect.width/2 - 17}px;top:${rect.top + rect.height/2 - 17}px;width:34px;height:34px;z-index:902;pointer-events:none;font-size:1.5em;font-weight:900;color:rgba(255,255,255,0.92);display:flex;align-items:center;justify-content:center;opacity:0;text-shadow:0 0 6px rgba(167,139,250,0.95);`;
+    sign.textContent = '×';
+    document.body.appendChild(sign);
+    mulSigns.push(sign);
+  }
+
+  // Phase 1: exp 枚に広がる
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    copies.forEach((copy, i) => {
+      const offsetX = (i - (exp - 1) / 2) * gap;
+      copy.style.transition = `transform ${SPREAD}ms cubic-bezier(0.34, 1.56, 0.64, 1)`;
+      copy.style.transform  = `translateX(${offsetX}px)`;
+    });
+  }));
+
+  // Phase 1.5: × サインをカードの境目にフェードイン
+  setTimeout(() => {
+    mulSigns.forEach((sign, i) => {
+      const midX = (i + 0.5 - (exp - 1) / 2) * gap;
+      sign.style.transition = `transform 80ms ease, opacity 80ms ease`;
+      sign.style.transform  = `translateX(${midX}px)`;
+      sign.style.opacity    = '1';
+    });
+  }, SPREAD - 40);
+
+  // Phase 2: 中心に吸い寄せられて消える（× も同時にフェードアウト）
+  setTimeout(() => {
+    copies.forEach(copy => {
+      copy.style.transition = `transform ${COLLAPSE}ms ease-in, opacity ${Math.round(COLLAPSE * 0.6)}ms ease-in ${Math.round(COLLAPSE * 0.4)}ms`;
+      copy.style.transform  = 'translateX(0) scale(0.15)';
+      copy.style.opacity    = '0';
+    });
+    mulSigns.forEach(sign => {
+      sign.style.transition = `opacity ${Math.round(COLLAPSE * 0.5)}ms ease-in`;
+      sign.style.opacity    = '0';
+    });
+  }, SPREAD + PAUSE);
+
+  // Phase 3: コピーを削除して積タイルをポップイン
+  setTimeout(() => {
+    copies.forEach(c => c.remove());
+    tileEl.style.visibility   = '';
+    tileEl.style.pointerEvents = '';
+
+    // negated: -(base^exp)、括弧あり op='-': -(base^exp)、通常: base^exp
+    const rawResult = tile.negated ? -Math.pow(tile.base, tile.exp) : Math.pow(tile.base, tile.exp);
+    const result    = (tile.base < 0 && tile.op === '-') ? -rawResult : rawResult;
+    const newId  = idCtr++;
+    stepCount++;
+    tiles[idx] = { id: newId, type: 'simple', value: result };
+    addIntermediate();
+    render(newId);
+
+    mulSigns.forEach(s => s.remove());
+    if (tiles.length === 1 && tiles[0].type === 'simple') {
+      setTimeout(() => showWin(tiles[0].value, stepCount), 550);
+    }
+  }, SPREAD + PAUSE + COLLAPSE + 50);
 }
 
 function resolvePow(tileId) {
@@ -975,7 +2183,8 @@ function resolvePow(tileId) {
   if (idx === -1 || tiles[idx].type !== 'pow') return;
   const tile = tiles[idx];
   pushHistory();
-  const result = Math.pow(tile.base, tile.exp);
+  const rawResult = tile.negated ? -Math.pow(tile.base, tile.exp) : Math.pow(tile.base, tile.exp);
+  const result    = (tile.base < 0 && tile.op === '-') ? -rawResult : rawResult;
   const newId = idCtr++;
   stepCount++;
   tiles[idx] = { id: newId, type: 'simple', value: result };
@@ -1001,14 +2210,81 @@ function createMulSubEls(tile, isNew) {
   rightEl.dataset.mulid   = tile.id;
   rightEl.dataset.mulpart = 'right';
   if (tile.rightFrac) {
-    rightEl.className = `tile positive mul-sub${revClass}`;
+    const rfColor = tile.rightFrac.num < 0 ? 'negative' : 'positive';
+    rightEl.className = `tile ${rfColor} mul-sub${revClass}${animClass}`;
+    rightEl.style.display = 'flex';
+    rightEl.style.alignItems = 'center';
+    rightEl.style.gap = '2px';
+    const isNegFrac = tile.rightFrac.num < 0;
+    if (isNegFrac) {
+      const lp = document.createElement('span');
+      lp.textContent = '(';
+      lp.style.cssText = 'font-size:1.1em;font-weight:900;line-height:1;';
+      rightEl.appendChild(lp);
+      const mline = document.createElement('span');
+      mline.className = 'frac-minus-line';
+      rightEl.appendChild(mline);
+    }
     const frac = document.createElement('div');
     frac.className = 'frac-display';
-    frac.innerHTML = `<span class="frac-num">${tile.rightFrac.num}</span><span class="frac-den">${tile.rightFrac.den}</span>`;
+    frac.innerHTML = `<span class="frac-num">${Math.abs(tile.rightFrac.num)}</span><span class="frac-den">${tile.rightFrac.den}</span>`;
     rightEl.appendChild(frac);
+    if (isNegFrac) {
+      const rp = document.createElement('span');
+      rp.textContent = ')';
+      rp.style.cssText = 'font-size:1.1em;font-weight:900;line-height:1;';
+      rightEl.appendChild(rp);
+    }
+  } else if (tile.rightPow) {
+    const rp = tile.rightPow;
+    const powVal = rp.negated ? -Math.pow(rp.base, rp.exp) : Math.pow(rp.base, rp.exp);
+    rightEl.className = `tile ${colorClass(powVal)} mul-sub pow-tile${revClass}${animClass}`;
+    rightEl.style.cssText += 'position:relative;display:flex;align-items:center;gap:1px;';
+    const needsParens = rp.negated || rp.base < 0;
+    if (needsParens) {
+      const lp = document.createElement('span');
+      lp.textContent = '(';
+      lp.style.cssText = 'font-size:0.95em;font-weight:900;line-height:1;';
+      rightEl.appendChild(lp);
+    }
+    const baseSpan = document.createElement('span');
+    baseSpan.textContent = rp.negated ? `-${Math.abs(rp.base)}` : String(rp.base);
+    rightEl.appendChild(baseSpan);
+    const badge = document.createElement('span');
+    badge.className = 'pow-exp-btn';
+    badge.textContent = rp.exp === 2 ? '²' : '³';
+    badge.title = '指数をクリックして累乗を計算';
+    // flex内では absolute を解除してインライン配置
+    badge.style.cssText = 'position:static;font-size:0.6em;font-weight:900;cursor:pointer;' +
+      'background:rgba(255,255,255,0.22);border-radius:4px;padding:1px 3px;line-height:1.35;' +
+      'border:1.5px solid rgba(255,255,255,0.45);user-select:none;pointer-events:auto;align-self:flex-start;';
+    badge.addEventListener('pointerdown', e => e.stopPropagation());
+    badge.addEventListener('click', e => { e.stopPropagation(); animateRightPowExpand(tile.id); });
+    if (rp.base < 0 && !rp.negated) {
+      // (-6)²: 閉じカッコを先に付けてからバッジ → 式表示と一致
+      const rp2 = document.createElement('span');
+      rp2.textContent = ')';
+      rp2.style.cssText = 'font-size:0.95em;font-weight:900;line-height:1;';
+      rightEl.appendChild(rp2);
+      rightEl.appendChild(badge);
+    } else {
+      // (-6²): バッジを先に、閉じカッコを後に
+      rightEl.appendChild(badge);
+      if (needsParens) {
+        const rp2 = document.createElement('span');
+        rp2.textContent = ')';
+        rp2.style.cssText = 'font-size:0.95em;font-weight:900;line-height:1;';
+        rightEl.appendChild(rp2);
+      }
+    }
+    rightEl.addEventListener('click', e => {
+      if (e.target === badge) return;
+      shakeEl(rightEl);
+      showTooltip(rightEl, '⚡ 指数をクリックして累乗を先に計算しよう！');
+    });
   } else {
     rightEl.className = `tile ${colorClass(tile.right)} mul-sub${revClass}`;
-    rightEl.textContent = `(${fmt(tile.right)})`;
+    rightEl.textContent = tile.right >= 0 ? String(tile.right) : `(${String(tile.right)})`;
   }
 
   [leftEl, rightEl].forEach(el => {
@@ -1023,19 +2299,24 @@ function createMulSubEls(tile, isNew) {
   connEl.dataset.mulid = tile.id;
   connEl.textContent = tile.op || '×';
   connEl.addEventListener('click', () => {
-    if (tiles.some(t => t.type === 'pow')) {
-      showTooltip(connEl, '⚡ まず累乗を処理しよう！');
+    const t = tiles.find(x => x.id === tile.id);
+    if (t?.rightPow) {
+      shakeEl(rightEl);
+      showTooltip(connEl, '⚡ 累乗を先に計算しよう！（指数をクリック）');
       return;
     }
-    const t = tiles.find(x => x.id === tile.id);
     if (t?.rightFrac && t?.op === '÷') {
       animateDivFracToMul(tile.id);          // ÷(分数) → フリップ → ×(逆数) → 約分へ
     } else if (t?.rightFrac && t.rightFrac.den === 1) {
-      resolveMul(tile.id);                   // 分母が1なら約分エフェクト不要・即計算
+      resolveMul(tile.id);                   // 分母が1なら即計算
+    } else if (t?.rightFrac && gcdInt(Math.abs(t.left), t.rightFrac.den) === 1) {
+      animateMulCollapse(tile.id);           // 約分なし（gcd=1）→ 通常の吸い寄せアニメ
     } else if (t?.rightFrac) {
-      animateFractionResolve(tile.id);       // 通常の分数かけ算（約分アニメあり）
+      animateFractionResolve(tile.id);       // 約分あり → 約分アニメ
+    } else if (t?.op === '÷' && t.left % t.right !== 0) {
+      animateDivRotate(tile.id);   // 整数÷整数で答えが分数: スライドアニメ
     } else {
-      resolveMul(tile.id);
+      animateMulCollapse(tile.id);  // 整数×整数: 吸い寄せアニメ
     }
   });
 
@@ -1056,10 +2337,30 @@ function onMulPartPointerDown(e) {
   const tile  = tiles.find(t => t.id === mulId);
   if (!tile) return;
 
+  // かっこグループが残っている場合はかっこを先に処理させる
+  if (tiles.some(t => (t.type === 'group_mul' || t.type === 'group_right') && t.innerTiles.length > 1)) {
+    document.querySelectorAll('.inner-tile').forEach(e => shakeEl(e));
+    showTooltip(e.currentTarget, '⚡ （　）の中を先に計算しよう！');
+    return;
+  }
+
+  // 累乗タイルが残っている場合は累乗を先に処理させる
+  if (tiles.some(t => t.type === 'pow') || tile.rightPow) {
+    document.querySelectorAll('.pow-exp-btn, .tile[data-id]').forEach(el => {
+      if (el.classList.contains('pow-exp-btn')) shakeEl(el);
+    });
+    showTooltip(e.currentTarget, '⚡ 累乗の指数をクリックして計算しよう！');
+    return;
+  }
+
   // Shake both parts together
   document.querySelectorAll(`.tile.mul-sub[data-mulid="${mulId}"]`).forEach(el => shakeEl(el));
 
-  const tip = tile.op === '÷' ? '⚡ まずはわり算処理しよう！（「÷」をクリック）' : '⚡ まずはかけ算処理しよう！（「×」をクリック）';
+  const tip = tile.op === '÷'
+    ? '⚡ わり算処理しよう！（「÷」をクリック）'
+    : tile.revealed
+      ? '⚡ 「×」をクリックして計算しよう！'
+      : '⚡ かけ算処理しよう！（「×」をクリック）';
   showTooltip(e.currentTarget, tip);
 
   // First time → highlight pair permanently
@@ -1071,10 +2372,14 @@ function onMulPartPointerDown(e) {
 }
 
 function shakeEl(el) {
-  el.classList.remove('shaking');
-  void el.offsetWidth;
-  el.classList.add('shaking');
-  setTimeout(() => el.classList.remove('shaking'), 500);
+  el.animate([
+    { transform: 'translateX(0)' },
+    { transform: 'translateX(-7px) rotate(-2deg)' },
+    { transform: 'translateX(7px)  rotate(2deg)' },
+    { transform: 'translateX(-5px) rotate(-1deg)' },
+    { transform: 'translateX(5px)  rotate(1deg)' },
+    { transform: 'translateX(0)' }
+  ], { duration: 450, easing: 'ease' });
 }
 
 function showTooltip(anchorEl, message) {
@@ -1085,11 +2390,13 @@ function showTooltip(anchorEl, message) {
   tip.textContent = message;
   document.body.appendChild(tip);
 
-  const rect = anchorEl.getBoundingClientRect();
+  // ゲームエリアの下端に固定表示（position:fixed なので viewport 座標をそのまま使う）
+  const gameArea = document.getElementById('game-area');
+  const gr  = gameArea ? gameArea.getBoundingClientRect() : anchorEl.getBoundingClientRect();
   const tipW = tip.offsetWidth;
-  const tipH = tip.offsetHeight;
-  let left = rect.left + rect.width / 2 - tipW / 2;
-  let top  = rect.top + window.scrollY - tipH - 14;
+
+  let left = gr.left + gr.width / 2 - tipW / 2;
+  let top  = gr.bottom + 10;   // scrollY 不要（fixed 要素はビューポート基準）
   left = Math.max(8, Math.min(left, window.innerWidth - tipW - 8));
   tip.style.left = left + 'px';
   tip.style.top  = top  + 'px';
@@ -1121,19 +2428,39 @@ function animateDivFracToMul(tileId) {
     rightEl.style.transform = 'scaleY(0)';
   }));
 
-  // --- 中間点（scaleY=0）: 中身を書き換えて逆数へ ---
-  setTimeout(() => {
-    const newNum = tile.rightFrac.den; // 逆数: 分子←元の分母
-    const newDen = tile.rightFrac.num; // 逆数: 分母←元の分子
+  // 逆数を計算: p/q の逆数は q/p。p<0 なら符号を分子に寄せて分母は正に保つ
+  const invSign = tile.rightFrac.num < 0 ? -1 : 1;
+  const invNum  = invSign * tile.rightFrac.den;       // 符号維持した分子
+  const invDen  = Math.abs(tile.rightFrac.num);        // 常に正の分母
 
+  // --- 中間点（scaleY=0）: カードをスクイッシュ中に再構築 ---
+  setTimeout(() => {
     // ÷ → ×
     connEl.textContent = '×';
 
-    // 分数カードを逆数に更新
-    const fracDisplay = rightEl.querySelector('.frac-display');
-    if (fracDisplay) {
-      fracDisplay.querySelector('.frac-num').textContent = newNum;
-      fracDisplay.querySelector('.frac-den').textContent = newDen;
+    // 分数カードを逆数で再構築（scaleY=0 なので見えない状態）
+    const isNeg = invNum < 0;
+    rightEl.className = rightEl.className.replace(/\b(positive|negative)\b/, isNeg ? 'negative' : 'positive');
+    rightEl.style.cssText += 'display:flex;align-items:center;gap:2px;';
+    rightEl.innerHTML = '';
+    if (isNeg) {
+      const lp = document.createElement('span');
+      lp.textContent = '(';
+      lp.style.cssText = 'font-size:1.1em;font-weight:900;line-height:1;';
+      rightEl.appendChild(lp);
+      const ml = document.createElement('span');
+      ml.className = 'frac-minus-line';
+      rightEl.appendChild(ml);
+    }
+    const fd = document.createElement('div');
+    fd.className = 'frac-display';
+    fd.innerHTML = `<span class="frac-num">${Math.abs(invNum)}</span><span class="frac-den">${invDen}</span>`;
+    rightEl.appendChild(fd);
+    if (isNeg) {
+      const rp = document.createElement('span');
+      rp.textContent = ')';
+      rp.style.cssText = 'font-size:1.1em;font-weight:900;line-height:1;';
+      rightEl.appendChild(rp);
     }
 
     // --- 展開フェーズ ---
@@ -1152,7 +2479,7 @@ function animateDivFracToMul(tileId) {
       type:      'mul',
       op:        '×',
       left:      tile.left,
-      rightFrac: { num: tile.rightFrac.den, den: tile.rightFrac.num },
+      rightFrac: { num: invNum, den: invDen },
       revealed:  true
     };
     // トランジションを外してクリーンアップ（再レンダリングは不要: DOM は正しい状態）
@@ -1236,27 +2563,401 @@ function animateFractionResolve(tileId) {
     if (denEl) { denEl.style.opacity = ''; denEl.style.transition = ''; }
 
     // Update left tile display to reduced value
-    leftEl.textContent = leftReduced >= 0 ? '+' + leftReduced : String(leftReduced);
+    leftEl.textContent = fmt(leftReduced);
     leftEl.classList.remove('reduced-pop'); void leftEl.offsetWidth; leftEl.classList.add('reduced-pop');
 
-    // Update right tile: show numerator only (denominator = 1 now)
+    // Update right tile: 分母が1になった場合も「numVal/1」の分数形式で表示
     rightEl.innerHTML = '';
-    const numLabel = document.createElement('span');
-    numLabel.textContent = numVal >= 0 ? '+' + numVal : String(numVal);
-    rightEl.appendChild(numLabel);
+    rightEl.style.display = 'flex';
+    rightEl.style.alignItems = 'center';
+    rightEl.style.gap = '2px';
+    const isNegNum = numVal < 0;
+    if (isNegNum) {
+      const lp = document.createElement('span');
+      lp.textContent = '(';
+      lp.style.cssText = 'font-size:1.1em;font-weight:900;line-height:1;';
+      rightEl.appendChild(lp);
+      const mline = document.createElement('span');
+      mline.className = 'frac-minus-line';
+      rightEl.appendChild(mline);
+    }
+    const fd2 = document.createElement('div');
+    fd2.className = 'frac-display';
+    const finalDen2 = tile.rightFrac.den / g;
+    fd2.innerHTML = `<span class="frac-num">${Math.abs(numVal)}</span><span class="frac-den">${finalDen2}</span>`;
+    rightEl.appendChild(fd2);
+    if (isNegNum) {
+      const rp = document.createElement('span');
+      rp.textContent = ')';
+      rp.style.cssText = 'font-size:1.1em;font-weight:900;line-height:1;';
+      rightEl.appendChild(rp);
+    }
     rightEl.classList.remove('reduced-pop'); void rightEl.offsetWidth; rightEl.classList.add('reduced-pop');
   }, 380);
 
-  // Phase 3 (800ms): commit reduced state to data, re-render with × still visible
+  // Phase 3 (800ms): 結果を確定
   setTimeout(() => {
     const idx = tiles.findIndex(t => t.id === tileId);
     if (idx === -1) return;
-    // Convert fraction mul → regular mul (leftReduced × numVal), keep same id
-    tiles[idx] = { id: tile.id, type: 'mul', op: '×', left: leftReduced, right: numVal, revealed: true };
+    const finalNum = leftReduced * numVal;
+    const finalDen = tile.rightFrac.den / g;
+    if (finalDen > 1 && g > 1) {
+      // 約分が起きて結果がまだ分数 → 中間状態の mul タイルで止める（もう一度×で分数確定）
+      tiles[idx] = { id: tile.id, type: 'mul', op: '×', left: leftReduced,
+        rightFrac: { num: numVal, den: finalDen }, revealed: true };
+      stepCount++;
+      addIntermediate();
+      render();
+    } else if (finalDen > 1) {
+      // 約分なし（g===1）・結果が分数 → 直接分数タイルへ
+      const frac  = makeFrac(finalNum, finalDen);
+      const newId = idCtr++;
+      tiles[idx]  = { id: newId, type: 'frac', num: frac.num, den: frac.den };
+      stepCount++;
+      addIntermediate();
+      render(newId);
+      if (tiles.length === 1) setTimeout(() => showWin(null, stepCount, frac), 550);
+    } else {
+      // 分母が1 → leftReduced × (numVal/1) の形で次ステップへ（もう一度×で整数）
+      tiles[idx] = { id: tile.id, type: 'mul', op: '×', left: leftReduced,
+        rightFrac: { num: numVal, den: 1 }, revealed: true };
+      stepCount++;
+      addIntermediate();
+      render();
+    }
+  }, 800);
+}
+
+/* ---- 整数÷整数 分数位置スライドアニメーション ---- */
+function animateDivRotate(tileId) {
+  const leftEl  = document.querySelector(`.tile.mul-sub[data-mulid="${tileId}"][data-mulpart="left"]`);
+  const connEl  = document.querySelector(`.mul-connector-btn[data-mulid="${tileId}"]`);
+  const rightEl = document.querySelector(`.tile.mul-sub[data-mulid="${tileId}"][data-mulpart="right"]`);
+  if (!leftEl || !connEl || !rightEl) { resolveMul(tileId); return; }
+
+  const idx = tiles.findIndex(t => t.id === tileId);
+  if (idx === -1 || tiles[idx].type !== 'mul') return;
+  pushHistory();
+
+  const tile = tiles[idx];
+
+  // スタイル変更前に位置を取得
+  const lRect = leftEl.getBoundingClientRect();
+  const cRect = connEl.getBoundingClientRect();
+  const rRect = rightEl.getBoundingClientRect();
+
+  const cx = cRect.left + cRect.width  / 2;
+  const cy = cRect.top  + cRect.height / 2;
+
+  const TILE_H = Math.max(lRect.height, rRect.height);
+  const GAP    = 6;
+  const BAR_H  = 3;
+  const BAR_W  = Math.max(lRect.width, rRect.width) + 24;
+
+  const numCY = cy - BAR_H / 2 - GAP - TILE_H / 2;
+  const denCY = cy + BAR_H / 2 + GAP + TILE_H / 2;
+
+  const lDX = cx - (lRect.left + lRect.width  / 2);
+  const lDY = numCY - (lRect.top  + lRect.height / 2);
+  const rDX = cx - (rRect.left + rRect.width  / 2);
+  const rDY = denCY - (rRect.top  + rRect.height / 2);
+
+  // 各要素を position:fixed に切り替えて body に移動
+  // （position:fixed にすると flow から外れるので、body に移してもレイアウト変化なし）
+  function liftToFixed(el, rect) {
+    el.style.animation  = 'none';      // pop-in 等のアニメーション停止
+    el.style.transition = 'none';      // CSS transition 停止
+    el.style.transform  = 'translate(0,0)';
+    el.style.position   = 'fixed';
+    el.style.left       = rect.left   + 'px';
+    el.style.top        = rect.top    + 'px';
+    el.style.width      = rect.width  + 'px';
+    el.style.height     = rect.height + 'px';
+    el.style.margin     = '0';
+    el.style.zIndex     = '901';
+    document.body.appendChild(el);  // DOM 上の親を body に移動
+  }
+
+  liftToFixed(leftEl,  lRect);
+  liftToFixed(connEl,  cRect);
+  liftToFixed(rightEl, rRect);
+
+  // 分数の横棒
+  const barEl = document.createElement('div');
+  barEl.style.position     = 'fixed';
+  barEl.style.left         = (cx - BAR_W / 2) + 'px';
+  barEl.style.top          = (cy - BAR_H / 2) + 'px';
+  barEl.style.width        = BAR_W + 'px';
+  barEl.style.height       = BAR_H + 'px';
+  barEl.style.background   = '#e2e8f0';
+  barEl.style.borderRadius = '2px';
+  barEl.style.zIndex       = '901';
+  barEl.style.opacity      = '0';
+  barEl.style.transition   = 'none';
+  document.body.appendChild(barEl);
+
+  const SLIDE = 200;
+  const HOLD  = 280;
+  const FADE  = 160;
+
+  // CSS transition を使わず JS の rAF ループで直接 transform を更新
+  // → 要素の CSS 状態に依存しないため初回から確実に動く
+  function easeInOut(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
+
+  const startTime = performance.now();
+
+  // ÷ フェードアウト（opacity は CSS transition で OK）
+  void connEl.offsetWidth;
+  connEl.style.transition = `opacity ${Math.round(SLIDE * 0.35)}ms ease-out`;
+  connEl.style.opacity    = '0';
+
+  // 横棒フェードイン
+  setTimeout(() => {
+    barEl.style.transition = `opacity ${Math.round(SLIDE * 0.5)}ms ease-in`;
+    barEl.style.opacity    = '1';
+  }, Math.round(SLIDE * 0.3));
+
+  // 左右タイルを rAF ループで移動
+  (function animStep(now) {
+    const t = Math.min((now - startTime) / SLIDE, 1);
+    const e = easeInOut(t);
+    leftEl.style.transform  = `translate(${lDX * e}px,${lDY * e}px)`;
+    rightEl.style.transform = `translate(${rDX * e}px,${rDY * e}px)`;
+    if (t < 1) requestAnimationFrame(animStep);
+  })(performance.now());
+
+  // HOLD 後にフェードアウト → 結果タイル表示
+  setTimeout(() => {
+    [leftEl, rightEl, barEl].forEach(el => {
+      el.style.transition = `opacity ${FADE}ms ease-out`;
+      el.style.opacity    = '0';
+    });
+
+    setTimeout(() => {
+      [leftEl, rightEl, connEl, barEl].forEach(el => el.remove());
+
+      // 非整数除算 → 分数タイル
+      if (tile.right !== 0 && tile.left % tile.right !== 0) {
+        const frac  = makeFrac(tile.left, tile.right);
+        const newId = idCtr++;
+        stepCount++;
+        tiles[idx] = { id: newId, type: 'frac', num: frac.num, den: frac.den };
+        addIntermediate();
+        render(newId);
+        if (tiles.length === 1) setTimeout(() => showWin(null, stepCount, frac), 550);
+        return;
+      }
+
+      const result = tile.left / tile.right;
+      const newId  = idCtr++;
+      stepCount++;
+      tiles[idx] = { id: newId, type: 'simple', value: result };
+      addIntermediate();
+      render(newId);
+      if (tiles.length === 1 && tiles[0].type === 'simple') {
+        setTimeout(() => showWin(tiles[0].value, stepCount), 550);
+      }
+    }, FADE + 20);
+  }, SLIDE + HOLD);
+}
+
+/* ---- 整数×整数 吸い寄せアニメーション ---- */
+function animateMulCollapse(tileId) {
+  const leftEl  = document.querySelector(`.tile.mul-sub[data-mulid="${tileId}"][data-mulpart="left"]`);
+  const connEl  = document.querySelector(`.mul-connector-btn[data-mulid="${tileId}"]`);
+  const rightEl = document.querySelector(`.tile.mul-sub[data-mulid="${tileId}"][data-mulpart="right"]`);
+  if (!leftEl || !connEl || !rightEl) { resolveMul(tileId); return; }
+
+  const idx = tiles.findIndex(t => t.id === tileId);
+  if (idx === -1 || tiles[idx].type !== 'mul') return;
+  pushHistory();
+
+  const SLIDE = 200; // ms
+
+  // コネクターの中心座標を基準にそれぞれの移動量を計算
+  const connCX  = connEl.getBoundingClientRect().left + connEl.getBoundingClientRect().width  / 2;
+  const connCY  = connEl.getBoundingClientRect().top  + connEl.getBoundingClientRect().height / 2;
+  const leftCX  = leftEl.getBoundingClientRect().left  + leftEl.getBoundingClientRect().width  / 2;
+  const rightCX = rightEl.getBoundingClientRect().left + rightEl.getBoundingClientRect().width / 2;
+  const leftDX  = connCX - leftCX;
+  const rightDX = connCX - rightCX;
+
+  // 操作を受け付けないようにする
+  [leftEl, connEl, rightEl].forEach(el => el.style.pointerEvents = 'none');
+
+  // 吸い寄せトランジション設定
+  [leftEl, rightEl].forEach(el => {
+    el.style.transition = `transform ${SLIDE}ms ease-in, opacity ${SLIDE}ms ease-in`;
+  });
+  connEl.style.transition = `opacity ${SLIDE * 0.6}ms ease-in`;
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    leftEl.style.transform  = `translateX(${leftDX}px) scale(0.3)`;
+    leftEl.style.opacity    = '0';
+    rightEl.style.transform = `translateX(${rightDX}px) scale(0.3)`;
+    rightEl.style.opacity   = '0';
+    connEl.style.opacity    = '0';
+  }));
+
+  // 衝突後: 結果タイルをポップイン
+  setTimeout(() => {
+    const tile = tiles[idx];
+
+    // 非整数の除算 → 分数タイル
+    if (!tile.rightFrac && tile.op === '÷' && tile.right !== 0 && tile.left % tile.right !== 0) {
+      const frac = makeFrac(tile.left, tile.right);
+      const newId = idCtr++;
+      stepCount++;
+      tiles[idx] = { id: newId, type: 'frac', num: frac.num, den: frac.den };
+      addIntermediate();
+      render(newId);
+      if (tiles.length === 1) setTimeout(() => showWin(null, stepCount, frac), 550);
+      return;
+    }
+
+    // rightFrac で結果が非整数 → 分数タイル
+    if (tile.rightFrac && (tile.left * tile.rightFrac.num) % tile.rightFrac.den !== 0) {
+      const frac = makeFrac(tile.left * tile.rightFrac.num, tile.rightFrac.den);
+      const newId = idCtr++;
+      stepCount++;
+      tiles[idx] = { id: newId, type: 'frac', num: frac.num, den: frac.den };
+      addIntermediate();
+      render(newId);
+      if (tiles.length === 1) setTimeout(() => showWin(null, stepCount, frac), 550);
+      return;
+    }
+
+    const result = tile.rightFrac
+      ? tile.left * tile.rightFrac.num / tile.rightFrac.den
+      : tile.op === '÷' ? tile.left / tile.right : tile.left * tile.right;
+    const newId = idCtr++;
+    stepCount++;
+    tiles[idx] = { id: newId, type: 'simple', value: result };
+    addIntermediate();
+    render(newId);
+
+    if (tiles.length === 1) {
+      const last = tiles[0];
+      if (last.type === 'simple') setTimeout(() => showWin(last.value, stepCount), 550);
+      else if (last.type === 'frac') setTimeout(() => showWin(null, stepCount, { num: last.num, den: last.den }), 550);
+    }
+  }, SLIDE + 20);
+}
+
+/* ---- mul の右辺にある累乗の展開アニメーション ---- */
+function animateRightPowExpand(tileId) {
+  const rightEl = document.querySelector(`.tile[data-mulid="${tileId}"][data-mulpart="right"]`);
+  if (!rightEl) { resolveRightPow(tileId); return; }
+
+  const idx = tiles.findIndex(t => t.id === tileId);
+  if (idx === -1 || !tiles[idx].rightPow) return;
+
+  const tile = tiles[idx];
+  const rp   = tile.rightPow;
+  const exp  = rp.exp;
+  const rect = rightEl.getBoundingClientRect();
+
+  pushHistory();
+
+  // 元タイルを非表示（レイアウトは維持）
+  rightEl.style.visibility   = 'hidden';
+  rightEl.style.pointerEvents = 'none';
+
+  const SPREAD   = 180;
+  const PAUSE    = 180;
+  const COLLAPSE = 200;
+  const gap = exp === 2 ? 80 : 64;
+
+  // animatePowExpand と同じロジックでコピーを生成
+  const copies = [];
+  for (let i = 0; i < exp; i++) {
+    const copy = document.createElement('div');
+    let copyText, copyCls;
+    if (rp.base < 0) {
+      copyText = `(${rp.base})`; copyCls = 'negative';
+    } else if (rp.negated) {
+      copyText = i === 0 ? `-${rp.base}` : String(rp.base);
+      copyCls  = i === 0 ? 'negative' : 'positive';
+    } else {
+      copyText = i === 0 ? `+${rp.base}` : String(rp.base);
+      copyCls  = 'positive';
+    }
+    copy.className = `tile ${copyCls}`;
+    copy.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;z-index:900;margin:0;pointer-events:none;`;
+    copy.textContent = copyText;
+    document.body.appendChild(copy);
+    copies.push(copy);
+  }
+
+  // × サイン
+  const mulSigns = [];
+  for (let i = 0; i < exp - 1; i++) {
+    const sign = document.createElement('div');
+    sign.style.cssText = `position:fixed;left:${rect.left + rect.width/2 - 17}px;top:${rect.top + rect.height/2 - 17}px;width:34px;height:34px;z-index:902;pointer-events:none;font-size:1.5em;font-weight:900;color:rgba(255,255,255,0.92);display:flex;align-items:center;justify-content:center;opacity:0;text-shadow:0 0 6px rgba(167,139,250,0.95);`;
+    sign.textContent = '×';
+    document.body.appendChild(sign);
+    mulSigns.push(sign);
+  }
+
+  // Phase 1: exp 枚に広がる
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    copies.forEach((copy, i) => {
+      const offsetX = (i - (exp - 1) / 2) * gap;
+      copy.style.transition = `transform ${SPREAD}ms cubic-bezier(0.34, 1.56, 0.64, 1)`;
+      copy.style.transform  = `translateX(${offsetX}px)`;
+    });
+  }));
+
+  // Phase 1.5: × フェードイン
+  setTimeout(() => {
+    mulSigns.forEach((sign, i) => {
+      const midX = (i + 0.5 - (exp - 1) / 2) * gap;
+      sign.style.transition = `transform 80ms ease, opacity 80ms ease`;
+      sign.style.transform  = `translateX(${midX}px)`;
+      sign.style.opacity    = '1';
+    });
+  }, SPREAD - 40);
+
+  // Phase 2: 中心に吸い寄せられて消える（× も同時にフェードアウト）
+  setTimeout(() => {
+    copies.forEach(copy => {
+      copy.style.transition = `transform ${COLLAPSE}ms ease-in, opacity ${Math.round(COLLAPSE * 0.6)}ms ease-in ${Math.round(COLLAPSE * 0.4)}ms`;
+      copy.style.transform  = 'translateX(0) scale(0.15)';
+      copy.style.opacity    = '0';
+    });
+    mulSigns.forEach(sign => {
+      sign.style.transition = `opacity ${Math.round(COLLAPSE * 0.5)}ms ease-in`;
+      sign.style.opacity    = '0';
+    });
+  }, SPREAD + PAUSE);
+
+  // Phase 3: コピーを削除してタイル状態を更新
+  setTimeout(() => {
+    copies.forEach(c => c.remove());
+    mulSigns.forEach(s => s.remove());
+    const powVal = rp.negated ? -Math.pow(rp.base, rp.exp) : Math.pow(rp.base, rp.exp);
+    tile.right = powVal;
+    delete tile.rightPow;
     stepCount++;
     addIntermediate();
-    render(); // × connector still shows → user clicks again to finish
-  }, 800);
+    render();
+  }, SPREAD + PAUSE + COLLAPSE + 50);
+}
+
+/* ---- mul の右辺にある累乗を解決（アニメなし fallback） ---- */
+function resolveRightPow(tileId) {
+  const idx = tiles.findIndex(t => t.id === tileId);
+  if (idx === -1) return;
+  const tile = tiles[idx];
+  if (!tile.rightPow) return;
+  pushHistory();
+  const rp = tile.rightPow;
+  const powVal = rp.negated ? -Math.pow(rp.base, rp.exp) : Math.pow(rp.base, rp.exp);
+  tile.right = powVal;
+  delete tile.rightPow;
+  stepCount++;
+  addIntermediate();
+  render();
 }
 
 function resolveMul(tileId) {
@@ -1265,15 +2966,25 @@ function resolveMul(tileId) {
   const tile = tiles[idx];
   pushHistory();
 
+  // 非整数の除算 → 分数タイル
+  if (!tile.rightFrac && tile.op === '÷' && tile.right !== 0 && tile.left % tile.right !== 0) {
+    const frac = makeFrac(tile.left, tile.right);
+    const newId = idCtr++;
+    stepCount++;
+    tiles[idx] = { id: newId, type: 'frac', num: frac.num, den: frac.den };
+    addIntermediate();
+    render(newId);
+    if (tiles.length === 1) setTimeout(() => showWin(null, stepCount, frac), 550);
+    return;
+  }
+
   const result = tile.rightFrac
     ? tile.left * tile.rightFrac.num / tile.rightFrac.den
     : tile.op === '÷' ? tile.left / tile.right : tile.left * tile.right;
   const newId  = idCtr++;
   stepCount++;
 
-  // Replace in-place so position in the row is preserved
   tiles[idx] = { id: newId, type: 'simple', value: result };
-
   addIntermediate();
   render(newId);
 
@@ -1285,33 +2996,20 @@ function resolveMul(tileId) {
 /* ---- Drag via Pointer Events (simple tiles only) ---- */
 function onPointerDown(e) {
   if (e.button !== undefined && e.button !== 0) return;
-  e.preventDefault();
 
   const el = e.currentTarget;
 
-  if (tiles.some(t => t.type === 'pow')) {
-    // 処理すべき累乗タイルを揺らす
-    tiles.filter(t => t.type === 'pow').forEach(t => {
-      const powEl = document.querySelector(`.tile[data-id="${t.id}"]`);
-      if (powEl) shakeEl(powEl);
-    });
-    showTooltip(el, '⚡ まず累乗を処理しよう！');
+  if (tiles.some(t => (t.type === 'group_mul' || t.type === 'group_right') && t.innerTiles.length > 1)) {
+    document.querySelectorAll('.inner-tile').forEach(e => shakeEl(e));
+    showTooltip(el, '⚡ （　）の中を先に計算しよう！');
     return;
   }
 
-  if (tiles.some(t => t.type === 'mul')) {
-    const mulTile = tiles.find(t => t.type === 'mul');
-    // 処理すべきかけ算・わり算タイルの両サブタイルを揺らす
-    document.querySelectorAll(`.tile.mul-sub[data-mulid="${mulTile.id}"]`).forEach(e => shakeEl(e));
-    const tip = mulTile.op === '÷'
-      ? '⚡ まずはわり算処理しよう！（「÷」をクリック）'
-      : '⚡ まずはかけ算処理しよう！（「×」をクリック）';
-    showTooltip(el, tip);
-    return;
-  }
+  // pow タイルは独立しているため、simple タイル同士のドラッグはブロックしない
+  // （累乗バッジをクリックすれば個別に解決できる）
+
 
   if (tiles.some(t => t.type === 'sign')) {
-    // 処理すべき符号タイルとその隣の値タイルを揺らす
     tiles.filter(t => t.type === 'sign').forEach(t => {
       const signEl = document.querySelector(`.sign-tile-btn[data-id="${t.id}"]`);
       if (signEl) shakeEl(signEl);
@@ -1325,6 +3023,9 @@ function onPointerDown(e) {
     showTooltip(el, '⚡ （　）の左にある ＋ / − をクリックして符号を統合しよう！');
     return;
   }
+
+  // ここから実際のドラッグ開始
+  e.preventDefault();
 
   dragId = parseInt(el.dataset.id);
   const tile = tiles.find(t => t.id === dragId);
@@ -1345,9 +3046,10 @@ function onPointerDown(e) {
   el.classList.add('dragging');
   positionGhost(e.clientX, e.clientY);
 
-  el.addEventListener('pointermove',  onPointerMove,  { passive: false });
-  el.addEventListener('pointerup',    onPointerUp);
-  el.addEventListener('pointercancel',onPointerCancel);
+  el.addEventListener('pointermove',       onPointerMove,  { passive: false });
+  el.addEventListener('pointerup',         onPointerUp);
+  el.addEventListener('pointercancel',     onPointerCancel);
+  el.addEventListener('lostpointercapture', () => { endDrag(el); dragId = null; });
 }
 
 function positionGhost(x, y) {
@@ -1360,18 +3062,28 @@ function onPointerMove(e) {
   e.preventDefault();
   positionGhost(e.clientX, e.clientY);
   document.querySelectorAll('.tile.drop-target').forEach(el => el.classList.remove('drop-target'));
-  const under = tileUnderPoint(e.clientX, e.clientY);
-  if (under) under.classList.add('drop-target');
+  // ゴーストの中心点だけでなく、ゴーストの矩形で重なっているタイルを探す
+  const under = tileUnderGhost() || tileUnderPoint(e.clientX, e.clientY);
+  if (under) {
+    under.classList.add('drop-target');
+    hoveredTargetId = parseInt(under.dataset.id);
+  } else {
+    hoveredTargetId = null;
+  }
 }
 
 function onPointerUp(e) {
   e.preventDefault();
-  const under = tileUnderPoint(e.clientX, e.clientY);
+  // ハイライト中の要素を優先、なければポインター位置で再判定
+  const targetId = hoveredTargetId ?? (() => {
+    const under = tileUnderPoint(e.clientX, e.clientY);
+    return under ? parseInt(under.dataset.id) : null;
+  })();
+  hoveredTargetId = null;
   endDrag(e.currentTarget);
 
-  if (under) {
-    const targetId = parseInt(under.dataset.id);
-    if (targetId !== dragId) { combine(dragId, targetId); dragId = null; return; }
+  if (targetId !== null && targetId !== dragId) {
+    combine(dragId, targetId); dragId = null; return;
   }
   dragId = null;
 }
@@ -1384,6 +3096,7 @@ function endDrag(el) {
   el.removeEventListener('pointerup',     onPointerUp);
   el.removeEventListener('pointercancel', onPointerCancel);
   document.querySelectorAll('.tile.drop-target').forEach(t => t.classList.remove('drop-target'));
+  hoveredTargetId = null;
   purgeGhost();
 }
 
@@ -1392,6 +3105,25 @@ function purgeGhost() {
   document.querySelectorAll('.ghost').forEach(el => el.remove());
   ghostEl = null;
   document.querySelectorAll('.tile.dragging').forEach(el => el.classList.remove('dragging'));
+}
+
+/* ゴーストの矩形と最も重なっているタイルを返す（重なりがあれば光っている＝ドロップ可） */
+function tileUnderGhost() {
+  if (!ghostEl) return null;
+  const gr = ghostEl.getBoundingClientRect();
+  let bestEl = null, bestArea = 0;
+  document.querySelectorAll('.tile:not(.mul-sub):not(.dragging)').forEach(el => {
+    const id = parseInt(el.dataset.id);
+    if (id === dragId || isNaN(id)) return;
+    const tr = el.getBoundingClientRect();
+    const ox = Math.max(0, Math.min(gr.right, tr.right) - Math.max(gr.left, tr.left));
+    const oy = Math.max(0, Math.min(gr.bottom, tr.bottom) - Math.max(gr.top, tr.top));
+    const area = ox * oy;
+    if (area > bestArea) { bestArea = area; bestEl = el; }
+  });
+  // 重なりが ghost 面積の 20% 以上あればドロップ対象とみなす
+  const ghostArea = gr.width * gr.height;
+  return bestArea >= ghostArea * 0.20 ? bestEl : null;
 }
 
 /* Only simple tiles are valid drop targets */
@@ -1415,7 +3147,19 @@ function combine(fromId, toId) {
 
   const from = tiles[fromIdx];
   const to   = tiles[toIdx];
-  const newVal = from.value + to.value;
+
+  // 有理数値を {num, den} で取得（simple は den=1 の分数として扱う）
+  function rval(t) {
+    if (t.type === 'simple') return { num: t.value, den: 1 };
+    if (t.type === 'frac')   return { num: t.num,   den: t.den };
+    return null;
+  }
+  const rv1 = rval(from);
+  const rv2 = rval(to);
+  if (!rv1 || !rv2) return;
+
+  // 分数加算: a/b + c/d = (a*d + c*b)/(b*d) → 約分
+  const sumRaw = makeFrac(rv1.num * rv2.den + rv2.num * rv1.den, rv1.den * rv2.den);
   const newId  = idCtr++;
   stepCount++;
 
@@ -1423,19 +3167,17 @@ function combine(fromId, toId) {
   const removeIdx = Math.max(fromIdx, toIdx);
 
   // ---- 和が０ ----
-  if (newVal === 0) {
+  if (sumRaw.num === 0) {
     tiles[keepIdx] = { id: newId, type: 'simple', value: 0 };
     tiles.splice(removeIdx, 1);
-    render(newId); // pop-in で 0 タイル表示
+    render(newId);
 
-    // ★ 最終答えが 0（これ以上タイルがない）→ 消滅させず win へ
     if (tiles.length === 1) {
       addIntermediate();
       setTimeout(() => showWin(0, stepCount), 600);
       return;
     }
 
-    // 途中で 0 になった場合 → 一瞬表示してフェード消滅、途中式には残さない
     setTimeout(() => {
       const zeroEl = document.querySelector(`.tile[data-id="${newId}"]`);
       if (zeroEl) zeroEl.classList.add('zero-vanish');
@@ -1443,25 +3185,37 @@ function combine(fromId, toId) {
 
     setTimeout(() => {
       const idx = tiles.findIndex(t => t.id === newId);
-      if (idx === -1) return; // undo済みの場合は何もしない
+      if (idx === -1) return;
       tiles.splice(idx, 1);
       render();
-      if (tiles.length === 1 && tiles[0].type === 'simple') {
-        setTimeout(() => showWin(tiles[0].value, stepCount), 550);
+      const last = tiles[0];
+      if (tiles.length === 1) {
+        if (last.type === 'simple') setTimeout(() => showWin(last.value, stepCount), 550);
+        else if (last.type === 'frac') setTimeout(() => showWin(null, stepCount, { num: last.num, den: last.den }), 550);
       }
     }, 1000);
     return;
   }
 
-  // ---- 通常の合体 ----
-  tiles[keepIdx] = { id: newId, type: 'simple', value: newVal };
+  // ---- 整数結果 ----
+  if (sumRaw.den === 1) {
+    tiles[keepIdx] = { id: newId, type: 'simple', value: sumRaw.num };
+  } else {
+    // ---- 分数結果 ----
+    tiles[keepIdx] = { id: newId, type: 'frac', num: sumRaw.num, den: sumRaw.den };
+  }
   tiles.splice(removeIdx, 1);
 
   addIntermediate();
   render(newId);
 
-  if (tiles.length === 1 && tiles[0].type === 'simple') {
-    setTimeout(() => showWin(tiles[0].value, stepCount), 550);
+  if (tiles.length === 1) {
+    const last = tiles[0];
+    if (last.type === 'simple') {
+      setTimeout(() => showWin(last.value, stepCount), 550);
+    } else if (last.type === 'frac') {
+      setTimeout(() => showWin(null, stepCount, { num: last.num, den: last.den }), 550);
+    }
   }
 }
 
@@ -1475,17 +3229,55 @@ function currentExprStr() {
       const next = tiles[i + 1];
       if (next && next.type === 'simple') {
         const valStr = next.value >= 0 ? `+${next.value}` : String(next.value);
-        parts.push(`${t.op}(${valStr})`);
+        const prefix = (parts.length === 0 && t.op === '+') ? '' : t.op;
+        parts.push(`${prefix}(${valStr})`);
         i += 2; continue;
       }
       parts.push(t.op);
     } else if (t.type === 'mul') {
       const l = parts.length === 0 ? String(t.left) : (t.left >= 0 ? '+' + t.left : String(t.left));
-      if (t.rightFrac) parts.push(`${l}${t.op}(${t.rightFrac.num}/${t.rightFrac.den})`);
-      else parts.push(`${l}${t.op}(${t.right})`);
+      if (t.rightFrac) {
+        parts.push(`${l}${t.op}${inlineFracHTMLMayWrap(t.rightFrac.num, t.rightFrac.den)}`);
+      } else if (t.rightPow) {
+        const rp = t.rightPow;
+        const sup = rp.exp === 2 ? '²' : '³';
+        const rpStr = rp.negated ? `(-${Math.abs(rp.base)}${sup})`
+          : (rp.base < 0 ? `(${rp.base})${sup}` : `${rp.base}${sup}`);
+        parts.push(`${l}${t.op || '×'}${rpStr}`);
+      } else {
+        parts.push(t.right < 0 ? `${l}${t.op}(${t.right})` : `${l}${t.op}${t.right}`);
+      }
     } else if (t.type === 'pow') {
-      const baseStr = t.base < 0 ? `(${t.base})` : String(t.base);
-      parts.push(parts.length === 0 ? `${baseStr}^${t.exp}` : `+${baseStr}^${t.exp}`);
+      const sup = t.exp === 2 ? '²' : '³';
+      if (t.negated) {
+        parts.push(`-${t.base}${sup}`);
+      } else {
+        const baseStr = t.base < 0 ? `(${t.base})` : String(t.base);
+        if (parts.length === 0) {
+          parts.push(`${baseStr}${sup}`);
+        } else {
+          const prefix = t.op || '+';
+          parts.push(`${prefix}${baseStr}${sup}`);
+        }
+      }
+    } else if (t.type === 'group_mul') {
+      const bO = t.bracket === '{' ? '{' : '(';
+      const bC = t.bracket === '{' ? '}' : ')';
+      const inner = t.innerTiles.map((it, i) => formatInnerTile(it, i === 0)).join('');
+      const rightStr = t.rightFrac
+        ? inlineFracHTMLMayWrap(t.rightFrac.num, t.rightFrac.den)
+        : (t.right !== null && t.right < 0) ? `(${t.right})` : String(t.right);
+      const prefix = parts.length > 0 ? '+' : '';
+      parts.push(`${prefix}${bO}${inner}${bC}${t.op || '×'}${rightStr}`);
+    } else if (t.type === 'group_right') {
+      const bO = t.bracket === '{' ? '{' : '(';
+      const bC = t.bracket === '{' ? '}' : ')';
+      const inner = t.innerTiles.map((it, i) => formatInnerTile(it, i === 0)).join('');
+      const leftStr = parts.length === 0 ? String(t.left) : (t.left >= 0 ? `+${t.left}` : String(t.left));
+      parts.push(`${leftStr}${t.op || '÷'}${bO}${inner}${bC}`);
+    } else if (t.type === 'frac') {
+      const fracH = inlineFracHTML(t.num, t.den);
+      parts.push(parts.length === 0 ? fracH : (t.num >= 0 ? `+${fracH}` : fracH));
     } else { // simple
       if (parts.length === 0) parts.push(String(t.value));
       else parts.push(t.value >= 0 ? `+${t.value}` : String(t.value));
@@ -1506,23 +3298,94 @@ function addIntermediate() {
 }
 
 /* ---- Win screen ---- */
-function showWin(answer, steps) {
+/* ---- 暗算解答表示 ---- */
+function computeAnswer(terms) {
+  const v = computeTermsValue(terms);
+  const rounded = Math.round(v);
+  if (Math.abs(v - rounded) < 1e-9) {
+    return { isInt: true, value: rounded };
+  }
+  // 小さい分母で一致するものを探す
+  for (let den = 2; den <= 200; den++) {
+    const num = Math.round(v * den);
+    if (Math.abs(num / den - v) < 1e-9) {
+      const g = gcdInt(Math.abs(num), den);
+      return { isInt: false, frac: { num: num / g, den: den / g } };
+    }
+  }
+  return { isInt: true, value: rounded }; // フォールバック
+}
+
+function showAnswerReveal() {
+  if (!currentAnswer) return;
+  // 既にwin画面が出ている場合は表示しない
+  if (document.querySelector('.win-card')) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.id = 'answer-reveal-overlay';
+  overlay.onclick = closeAnswerReveal;
+  document.body.appendChild(overlay);
+
+  const a = currentAnswer;
+  const answerHtml = a.isInt
+    ? `<div class="win-answer">${a.value}</div>`
+    : `<div style="display:flex;align-items:center;gap:6px;justify-content:center;">
+         ${a.frac.num < 0 ? '<span style="display:inline-block;width:22px;height:0;border-top:3px solid #fbbf24;flex-shrink:0;margin-right:2px;"></span>' : ''}
+         <div class="win-answer-frac">
+           <span class="win-frac-num">${Math.abs(a.frac.num)}</span>
+           <span class="win-frac-den">${a.frac.den}</span>
+         </div>
+       </div>`;
+
+  const card = document.createElement('div');
+  card.className = 'win-card';
+  card.id = 'answer-reveal-card';
+  card.innerHTML = `
+    <div class="win-emoji" style="font-size:1.6em;">📖</div>
+    <div class="win-label">答えは</div>
+    ${answerHtml}
+    <div class="win-btns">
+      <button class="win-btn win-btn-main" onclick="closeAnswerReveal(); generateAndStart(lastGameType)">次の問題</button>
+      <button class="win-btn win-btn-sub" onclick="closeAnswerReveal(); restartGame()">もう一度</button>
+      <button class="win-btn win-btn-close" onclick="closeAnswerReveal()">とじる</button>
+    </div>
+  `;
+  document.body.appendChild(card);
+}
+
+function closeAnswerReveal() {
+  document.querySelectorAll('#answer-reveal-card, #answer-reveal-overlay').forEach(el => el.remove());
+}
+
+function showWin(answer, steps, frac = null) {
   purgeGhost(); // ensure no ghost survives to overlay the win card
   const overlay = document.createElement('div');
   overlay.className = 'overlay';
   overlay.onclick = closeWin;
   document.body.appendChild(overlay);
 
+  const answerHtml = frac
+    ? `<div style="display:flex;align-items:center;gap:6px;justify-content:center;">
+         ${frac.num < 0 ? '<span style="display:inline-block;width:22px;height:0;border-top:3px solid #fbbf24;flex-shrink:0;"></span>' : ''}
+         <div class="win-answer-frac">
+           <span class="win-frac-num">${Math.abs(frac.num)}</span>
+           <span class="win-frac-den">${frac.den}</span>
+         </div>
+       </div>`
+    : `<div class="win-answer">${String(answer)}</div>`;
+
   const card = document.createElement('div');
   card.className = 'win-card';
   card.innerHTML = `
     <div class="win-emoji">🎉</div>
     <div class="win-label">答えは</div>
-    <div class="win-answer">${fmt(answer)}</div>
+    ${answerHtml}
     <div class="win-steps">${steps} ステップで完成！</div>
     <div class="win-btns">
-      <button class="win-btn win-btn-main" onclick="closeWin(); startGame()">もう一度</button>
-      <button class="win-btn win-btn-sub" onclick="closeWin()">式を変える</button>
+      <button class="win-btn win-btn-main" onclick="closeWin(); generateAndStart(lastGameType)">次の問題</button>
+      <button class="win-btn win-btn-sub" onclick="closeWin(); restartGame()">もう一度</button>
+      <button class="win-btn win-btn-close" onclick="closeWin()">とじる</button>
     </div>
   `;
   document.body.appendChild(card);
@@ -1544,120 +3407,36 @@ function randNonZero(min, max) {
   return v;
 }
 
-function generateProblem() {
-  // ~40% chance: pow-based problem
-  if (Math.random() < 0.4) {
-    const powCount = randInt(1, 2);
-    const simCount = randInt(1, Math.max(1, 4 - powCount - 1));
-    const terms = [];
-    for (let i = 0; i < powCount; i++) {
-      const exp  = Math.random() < 0.5 ? 2 : 3;
-      // 指数が3のときは底を2か3に限定
-      const base = exp === 3
-        ? (Math.random() < 0.5 ? 2 : 3)
-        : randNonZero(-4, 4);
-      terms.push({ type: 'pow', base, exp });
-    }
-    for (let i = 0; i < simCount; i++) {
-      terms.push({ type: 'simple', value: randNonZero(-9, 9) });
-    }
-    for (let i = terms.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [terms[i], terms[j]] = [terms[j], terms[i]];
-    }
-    return terms.map((t, i) => {
-      if (t.type === 'pow') {
-        const baseStr = t.base < 0 ? `(${t.base})` : String(t.base);
-        // 式の途中（i>0）では必ず + を付けて ( )( ) の連続を防ぐ
-        return i === 0 ? `${baseStr}^${t.exp}` : `+${baseStr}^${t.exp}`;
-      }
-      return (t.value > 0 && i > 0) ? '+' + t.value : String(t.value);
-    }).join('');
-  }
-
-  // ~20% chance: 符号問題（単独の＋/−と括弧の中の数）
-  if (Math.random() < 0.20) {
-    // suf(s): 整数 s を後ろに連結するときの文字列（+-3 を防ぐ）
-    const suf = s => s >= 0 ? `+${s}` : `${s}`;
-
+// ── ＋−のみ ──────────────────────────────────────────────
+function genAddSub() {
+  const suf = s => s >= 0 ? `+${s}` : `${s}`;
+  // 50%: 符号問題（sign tile パターン）
+  if (Math.random() < 0.5) {
     const patterns = [
-      // −(負) 系
-      () => { const v = -randInt(1,9); const s = randNonZero(-9,9); return `-(${v})${suf(s)}`; },   // -(-4)+3
-      () => { const s = randNonZero(-9,9); const v = -randInt(1,9); return `${s}-(${v})`; },          // 5-(-4)
-      () => { const v = randInt(2,9);  const s = randNonZero(-9,9); return `-(+${v})${suf(s)}`; },   // -(+3)+5
-      () => { const s = randNonZero(-9,9); const v = randInt(2,9);  return `${s}-(+${v})`; },         // 5-(+3)
-      () => { const v1=-randInt(1,9); const v2=-randInt(1,9); const s=randNonZero(-9,9); return `-(${v1})-(${v2})${suf(s)}`; }, // -(-3)-(-2)+1
-      // +(正) 系
-      () => { const v = randInt(1,9);  const s = randNonZero(-9,9); return `+(+${v})${suf(s)}`; },   // +(+5)+3
-      () => { const s = randNonZero(-9,9); const v = randInt(1,9);  return `${s}+(+${v})`; },         // 5+(+3)
-      // +(負) 系
-      () => { const v = -randInt(1,9); const s = randNonZero(-9,9); return `+(${v})${suf(s)}`; },    // +(-4)+3
-      () => { const s = randNonZero(-9,9); const v = -randInt(1,9); return `${s}+(${v})`; },          // 5+(-3)
+      () => { const v = -randInt(1,9); const s = randNonZero(-9,9); return `-(${v})${suf(s)}`; },
+      () => { const s = randNonZero(-9,9); const v = -randInt(1,9); return `${s}-(${v})`; },
+      () => { const v = randInt(2,9);  const s = randNonZero(-9,9); return `-(+${v})${suf(s)}`; },
+      () => { const s = randNonZero(-9,9); const v = randInt(2,9);  return `${s}-(+${v})`; },
+      () => { const s = randNonZero(-9,9); const v = randInt(1,9);  return `${s}+(+${v})`; },
+      () => { const s = randNonZero(-9,9); const v = -randInt(1,9); return `${s}+(${v})`; },
     ];
-    const fn = patterns[Math.floor(Math.random() * patterns.length)];
-    return fn();
+    return patterns[Math.floor(Math.random() * patterns.length)]();
   }
+  // 純粋な加減算（整数 3〜4 項、最大4枚）
+  const count = randInt(3, 4);
+  const terms = [];
+  for (let i = 0; i < count; i++) terms.push(randNonZero(-9, 9));
+  return terms.map((v, i) => (v > 0 && i > 0) ? '+' + v : String(v)).join('');
+}
 
-  // ~35% chance: fraction mul/div problem
-  if (Math.random() < 0.35) {
-    const validFracs = [
-      {num:1,den:2},{num:1,den:3},{num:1,den:4},{num:1,den:5},
-      {num:2,den:3},{num:2,den:5},
-      {num:3,den:4},{num:3,den:5}
-    ];
-    const fracCount = randInt(1, 2);
-    const simCount  = fracCount === 1 ? randInt(1, 2) : 0;
-    const terms = [];
-    for (let i = 0; i < fracCount; i++) {
-      const frac = validFracs[Math.floor(Math.random() * validFracs.length)];
-      const isDivFrac = Math.random() < 0.45; // 45%で÷(分数)、55%で×(分数)
-      if (isDivFrac) {
-        // left ÷ (num/den) = left × den/num → left が num の倍数になるよう生成
-        let left;
-        do {
-          const k = randNonZero(-5, 5);
-          left = k * frac.num;
-        } while (Math.abs(left * frac.den / frac.num) > 20 || left === 0);
-        terms.push({ type: 'mul', op: '÷', left, rightFrac: frac });
-      } else {
-        // left × (num/den) → left が den の倍数
-        let left;
-        do {
-          const k = randNonZero(-5, 5);
-          left = k * frac.den;
-        } while (Math.abs(left * frac.num / frac.den) > 20 || left === 0);
-        terms.push({ type: 'mul', op: '×', left, rightFrac: frac });
-      }
-    }
-    for (let i = 0; i < simCount; i++) {
-      terms.push({ type: 'simple', value: randNonZero(-9, 9) });
-    }
-    for (let i = terms.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [terms[i], terms[j]] = [terms[j], terms[i]];
-    }
-    return terms.map((t, i) => {
-      if (t.type === 'mul' && t.rightFrac) {
-        const l = (t.left > 0 && i > 0) ? '+' + t.left : String(t.left);
-        return `${l}${t.op}(${t.rightFrac.num}/${t.rightFrac.den})`;
-      }
-      return (t.value > 0 && i > 0) ? '+' + t.value : String(t.value);
-    }).join('');
-  }
-
-  // × terms: 1 or 2  (each uses 2 panels)
-  // Simple terms fill remaining panels up to 4
-  // mulCount=1 → simCount 1–2 (3–4 panels)
-  // mulCount=2 → simCount 0   (4 panels exactly)
+// ── ×÷含む（整数のみ）────────────────────────────────────
+function genMulDiv() {
   const mulCount = randInt(1, 2);
   const simCount = mulCount === 1 ? randInt(1, 2) : 0;
-
   const terms = [];
   for (let i = 0; i < mulCount; i++) {
     const op = Math.random() < 0.5 ? '×' : '÷';
     if (op === '÷') {
-      // Ensure clean (integer) division: left = right × result
-      // Also avoid trivial ÷(±1) by requiring |right| ≥ 2
       let left, right, result;
       do {
         right  = randNonZero(-9, 9);
@@ -1669,33 +3448,880 @@ function generateProblem() {
       terms.push({ type: 'mul', op: '×', left: randNonZero(-9, 9), right: randNonZero(-9, 9) });
     }
   }
-  for (let i = 0; i < simCount; i++) {
-    terms.push({ type: 'simple', value: randNonZero(-9, 9) });
+  for (let i = 0; i < simCount; i++) terms.push({ type: 'simple', value: randNonZero(-9, 9) });
+  for (let i = terms.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [terms[i], terms[j]] = [terms[j], terms[i]];
+  }
+  return terms; // terms 配列をそのまま返す（generateAndStart 側で startGameFromTerms を使用）
+}
+
+// ── 累乗含む ──────────────────────────────────────────────
+function genPow() {
+  // 40%で「乗除に累乗を含む」バリアント: left × base^exp (+ optional simple)
+  if (Math.random() < 0.40) {
+    const terms = genPowMulTerms();
+    if (terms) return terms;
   }
 
-  // Shuffle
+  // 既存ロジック（termsベースに変換・底の範囲を拡大）
+  const withMul  = Math.random() < 0.4;
+  const powCount = withMul ? 1 : randInt(1, 2);
+  const mulCount = withMul ? 1 : 0;
+  const simCount = withMul ? 0 : randInt(1, Math.max(1, 4 - powCount - 1));
+  const terms = [];
+
+  for (let i = 0; i < powCount; i++) {
+    const exp     = Math.random() < 0.5 ? 2 : 3;
+    const negated = Math.random() < 0.35;
+    if (negated) {
+      // 指数2: 底の絶対値 1〜8、指数3: 2 or 3
+      const base = exp === 3 ? (Math.random() < 0.5 ? 2 : 3) : randInt(1, 8);
+      terms.push({ type: 'pow', base, exp, negated: true });
+    } else {
+      // 指数2: 底 −8〜8（0除く）、負の底も可、指数3: 2 or 3
+      const base = exp === 3 ? (Math.random() < 0.5 ? 2 : 3) : randNonZero(-8, 8);
+      terms.push({ type: 'pow', base, exp });
+    }
+  }
+
+  for (let i = 0; i < mulCount; i++) {
+    const op = Math.random() < 0.5 ? '×' : '÷';
+    if (op === '÷') {
+      let left, right, result;
+      do {
+        right  = randNonZero(-9, 9);
+        result = randNonZero(-9, 9);
+        left   = right * result;
+      } while (Math.abs(right) === 1 || Math.abs(left) > 81);
+      terms.push({ type: 'mul', op: '÷', left, right });
+    } else {
+      terms.push({ type: 'mul', op: '×', left: randNonZero(-9, 9), right: randNonZero(-9, 9) });
+    }
+  }
+
+  for (let i = 0; i < simCount; i++) terms.push({ type: 'simple', value: randNonZero(-9, 9) });
+
+  for (let i = terms.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [terms[i], terms[j]] = [terms[j], terms[i]];
+  }
+  return terms;
+}
+
+// 乗除 × 累乗バリアント: left × base^exp  (+ optional simple)
+function genPowMulTerms() {
+  const exp     = Math.random() < 0.5 ? 2 : 3;
+  const negated = Math.random() < 0.3;
+  let base, powVal;
+  if (negated) {
+    base   = exp === 3 ? (Math.random() < 0.5 ? 2 : 3) : randInt(1, 8);
+    powVal = -Math.pow(base, exp);
+  } else {
+    base   = exp === 3 ? (Math.random() < 0.5 ? 2 : 3) : randNonZero(-8, 8);
+    powVal = Math.pow(base, exp);
+  }
+  if (powVal === 0) return null;
+
+  const op = Math.random() < 0.7 ? '×' : '÷';
+  let left;
+  if (op === '÷') {
+    // left を powVal の倍数にして整数除算を保証
+    let k, tries = 0;
+    do { k = randNonZero(-5, 5); left = k * powVal; tries++; }
+    while (Math.abs(left) > 100 && tries < 20);
+    if (Math.abs(left) > 100) return null;
+  } else {
+    left = randNonZero(-9, 9);
+  }
+
+  const mulTerm = { type: 'mul', op, left, rightPow: { base, exp, negated: !!negated } };
+  const terms = [mulTerm];
+
+  // 50%で simple tile を追加してシャッフル
+  if (Math.random() < 0.5) {
+    terms.push({ type: 'simple', value: randNonZero(-9, 9) });
+    if (Math.random() < 0.5) [terms[0], terms[1]] = [terms[1], terms[0]];
+  }
+  return terms;
+}
+
+// ── 分数含む（累乗の出現もあり）────────────────────────────
+function genFrac() {
+  const validFracs = [
+    {num:1,den:2},{num:1,den:3},{num:1,den:4},{num:1,den:5},
+    {num:2,den:3},{num:2,den:5},
+    {num:3,den:4},{num:3,den:5}
+  ];
+
+  // 30%の確率で「分数＋累乗」混合問題（カード最大4枚）
+  const withPow = Math.random() < 0.3;
+
+  // fracCount: withPow のときは1固定（frac=2枚+pow=1枚+sim=0or1枚で最大4枚）
+  const fracCount = withPow ? 1 : randInt(1, 2);
+  // simCount: withPow のときは0か1、通常は fracCount=1 なら1か2、fracCount=2 なら0
+  const simCount = withPow
+    ? (Math.random() < 0.5 ? 0 : 1)
+    : (fracCount === 1 ? randInt(1, 2) : 0);
+
+  const terms = [];
+
+  // 分数タイルを追加
+  for (let i = 0; i < fracCount; i++) {
+    const base = validFracs[Math.floor(Math.random() * validFracs.length)];
+    // 40%の確率で負の分数にする
+    const fracNum = Math.random() < 0.4 ? -base.num : base.num;
+    const frac = { num: fracNum, den: base.den };
+    const isDivFrac = Math.random() < 0.45;
+    if (isDivFrac) {
+      // left ÷ (fracNum/den)：left = k*fracNum で整数結果 k*den
+      let left;
+      do {
+        const k = randNonZero(-5, 5);
+        left = k * fracNum;
+      } while (Math.abs(left * frac.den / fracNum) > 20 || left === 0);
+      terms.push({ type: 'mul', op: '÷', left, rightFrac: frac });
+    } else {
+      // left × (fracNum/den)：left = k*den で整数結果 k*fracNum
+      let left;
+      do {
+        const k = randNonZero(-5, 5);
+        left = k * frac.den;
+      } while (Math.abs(left * fracNum / frac.den) > 20 || left === 0);
+      terms.push({ type: 'mul', op: '×', left, rightFrac: frac });
+    }
+  }
+
+  // 累乗タイルを追加（withPow のとき）
+  if (withPow) {
+    const exp     = Math.random() < 0.5 ? 2 : 3;
+    const negated = Math.random() < 0.35;
+    if (negated) {
+      const base = exp === 3 ? (Math.random() < 0.5 ? 2 : 3) : randInt(2, 4);
+      terms.push({ type: 'pow', base, exp, negated: true });
+    } else {
+      const base = exp === 3 ? (Math.random() < 0.5 ? 2 : 3) : randNonZero(-4, 4);
+      terms.push({ type: 'pow', base, exp });
+    }
+  }
+
+  // 単純タイルを追加
+  for (let i = 0; i < simCount; i++) terms.push({ type: 'simple', value: randNonZero(-9, 9) });
+
+  // シャッフル
   for (let i = terms.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [terms[i], terms[j]] = [terms[j], terms[i]];
   }
 
   return terms.map((t, i) => {
-    if (t.type === 'mul') {
+    if (t.type === 'mul' && t.rightFrac) {
       const l = (t.left > 0 && i > 0) ? '+' + t.left : String(t.left);
-      return `${l}${t.op}(${t.right})`; // use actual op (× or ÷)
+      return `${l}${t.op}(${t.rightFrac.num}/${t.rightFrac.den})`;
+    }
+    if (t.type === 'pow') {
+      if (t.negated) return `-${t.base}^${t.exp}`;
+      const baseStr = t.base < 0 ? `(${t.base})` : String(t.base);
+      return i === 0 ? `${baseStr}^${t.exp}` : `+${baseStr}^${t.exp}`;
     }
     return (t.value > 0 && i > 0) ? '+' + t.value : String(t.value);
   }).join('');
 }
 
-function generateAndStart() {
-  const expr = generateProblem();
+// ── かっこ含む ──────────────────────────────────────────────
+function pickOuterOp(innerSum) {
+  // innerSum を割り切れる数があれば ÷ も選択肢に入れる
+  const op = Math.random() < 0.5 ? '×' : '÷';
+  if (op === '÷') {
+    const divs = [];
+    for (let d = -9; d <= 9; d++) {
+      if (Math.abs(d) >= 2 && innerSum % d === 0) divs.push(d);
+    }
+    if (divs.length > 0) return { op: '÷', right: divs[Math.floor(Math.random() * divs.length)] };
+  }
+  let right;
+  do { right = randNonZero(-5, 5); } while (Math.abs(right) === 1);
+  return { op: '×', right };
+}
+
+// 外側を分数にするヘルパー（整数結果が出る分数のみ）
+function pickOuterFrac(innerSum) {
+  const validFracs = [
+    {num:1,den:2},{num:1,den:3},{num:1,den:4},{num:1,den:5},
+    {num:2,den:3},{num:2,den:5},{num:3,den:4},{num:3,den:5}
+  ];
+  const candidates = [];
+  for (const f of validFracs) {
+    // 正の分数 ×
+    const mulResult = innerSum * f.num / f.den;
+    if (Number.isInteger(mulResult) && mulResult !== 0 && Math.abs(mulResult) <= 20)
+      candidates.push({ op: '×', rightFrac: f });
+    // 負の分数 ×（÷は逆数変換が複雑なので除外）
+    const negMulResult = innerSum * (-f.num) / f.den;
+    if (Number.isInteger(negMulResult) && negMulResult !== 0 && Math.abs(negMulResult) <= 20)
+      candidates.push({ op: '×', rightFrac: { num: -f.num, den: f.den } });
+    // 正の分数 ÷
+    const divResult = innerSum * f.den / f.num;
+    if (Number.isInteger(divResult) && divResult !== 0 && Math.abs(divResult) <= 20)
+      candidates.push({ op: '÷', rightFrac: f });
+    // 負の分数 ÷（÷(-p/q) = ×(-q/p)、結果は正の÷と符号反転）
+    if (Number.isInteger(divResult) && divResult !== 0 && Math.abs(divResult) <= 20)
+      candidates.push({ op: '÷', rightFrac: { num: -f.num, den: f.den } });
+  }
+  if (candidates.length === 0) return null;
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+// シンプルな足し引きのみ
+function genParenSimple() {
+  const innerCount = randInt(2, 3);
+  let innerVals;
+  do {
+    innerVals = Array.from({ length: innerCount }, () => randNonZero(-9, 9));
+  } while (innerVals.reduce((a, b) => a + b, 0) === 0);
+  const innerSum = innerVals.reduce((a, b) => a + b, 0);
+  const innerTiles = innerVals.map(v => ({ type: 'simple', value: v }));
+  let groupTerm;
+  if (Math.random() < 0.30) {
+    const fracOp = pickOuterFrac(innerSum);
+    if (fracOp) groupTerm = { type: 'group_mul', bracket: '(', innerTiles, op: fracOp.op, right: null, rightFrac: fracOp.rightFrac };
+  }
+  if (!groupTerm) {
+    const { op, right } = pickOuterOp(innerSum);
+    groupTerm = { type: 'group_mul', bracket: '(', innerTiles, op, right };
+  }
+  const terms = [groupTerm];
+  if (innerCount === 2 && Math.random() < 0.3) terms.push({ type: 'simple', value: randNonZero(-9, 9) });
+  return terms;
+}
+
+// ── かっこが右側にくるバリアント ────────────────────────────────
+// A ÷ (B+C) / A × (B+C) の形式
+function genRightParenSimple() {
+  const innerCount = randInt(2, 3);
+  let innerVals, innerSum;
+  do {
+    innerVals = Array.from({ length: innerCount }, () => randNonZero(-9, 9));
+    innerSum = innerVals.reduce((a, b) => a + b, 0);
+  } while (innerSum === 0);
+
+  // 50%で除算（leftはinnerSumの倍数）、50%で乗算（任意の整数）
+  let left, op;
+  if (Math.random() < 0.5 && innerSum !== 0) {
+    op = '÷';
+    let k;
+    let tries = 0;
+    do { k = randNonZero(-5, 5); tries++; } while ((Math.abs(k) === 1 || Math.abs(k * innerSum) > 20) && tries < 30);
+    left = k * innerSum;
+  } else {
+    op = '×';
+    let tries = 0;
+    do { left = randNonZero(-5, 5); tries++; } while ((Math.abs(left) === 1 || Math.abs(left * innerSum) > 20) && tries < 30);
+  }
+  const innerTiles = innerVals.map(v => ({ type: 'simple', value: v }));
+  return [{ type: 'group_right', bracket: '(', left, op, innerTiles }];
+}
+
+// A ÷ (B^N + C) など累乗を含む右かっこバリアント
+function genRightParenPow() {
+  const exp  = Math.random() < 0.5 ? 2 : 3;
+  const base = exp === 3 ? (Math.random() < 0.5 ? 2 : 3) : randInt(2, 4);
+  const negated = Math.random() < 0.4;
+  const powVal = negated ? -Math.pow(base, exp) : Math.pow(base, exp);
+
+  // inner = simple + pow → 整数の divisor を left に設定
+  let simple;
+  let tries = 0;
+  do { simple = randNonZero(-9, 9); tries++; } while (simple + powVal === 0 && tries < 30);
+  const innerSum = simple + powVal;
+  if (innerSum === 0) return genRightParenSimple();
+
+  // left が innerSum の倍数になるよう選ぶ
+  let left, op;
+  if (innerSum !== 0 && Math.random() < 0.6) {
+    op = '÷';
+    let k, t2 = 0;
+    do { k = randNonZero(-5, 5); t2++; } while ((Math.abs(k) === 1 || Math.abs(k * innerSum) > 30) && t2 < 30);
+    left = k * innerSum;
+  } else {
+    op = '×';
+    let t2 = 0;
+    do { left = randNonZero(-5, 5); t2++; } while ((Math.abs(left) === 1 || Math.abs(left * innerSum) > 30) && t2 < 30);
+  }
+  const innerTiles = [
+    { type: 'simple', value: simple },
+    { type: 'pow', base, exp, negated }
+  ];
+  return [{ type: 'group_right', bracket: '(', left, op, innerTiles }];
+}
+
+// かっこ内に累乗を含む: (A ± base^exp) × C
+function genParenWithPow() {
+  const exp     = Math.random() < 0.5 ? 2 : 3;
+  const base    = exp === 3 ? (Math.random() < 0.5 ? 2 : 3) : randInt(2, 4);
+  const negated = Math.random() < 0.5;  // true → -(base^exp)
+  const powVal  = negated ? -Math.pow(base, exp) : Math.pow(base, exp);
+  let simple;
+  do { simple = randNonZero(-7, 7); } while (simple + powVal === 0);
+  const innerSum = simple + powVal;
+  let op, right, rightFrac = null;
+  if (Math.random() < 0.30) {
+    const fracOp = pickOuterFrac(innerSum);
+    if (fracOp) { op = fracOp.op; rightFrac = fracOp.rightFrac; right = null; }
+  }
+  if (!op) { const chosen = pickOuterOp(innerSum); op = chosen.op; right = chosen.right; }
+  return [{ type: 'group_mul', bracket: '(',
+    innerTiles: [
+      { type: 'simple', value: simple },
+      { type: 'pow', base, exp, negated }
+    ], op, right, rightFrac }];
+}
+
+// かっこ内に乗算を含む: (A ± B×C) × D
+function genParenWithMul() {
+  let simple, mulLeft, mulRight, innerSum;
+  let tries = 0;
+  do {
+    simple   = randNonZero(-7, 7);
+    mulLeft  = randNonZero(-5, 5);
+    mulRight = randInt(2, 5);
+    innerSum = simple + mulLeft * mulRight;
+    tries++;
+  } while (innerSum === 0 && tries < 30);
+  if (innerSum === 0) return genParenSimple();
+  let op, right, rightFrac = null;
+  if (Math.random() < 0.30) {
+    const fracOp = pickOuterFrac(innerSum);
+    if (fracOp) { op = fracOp.op; rightFrac = fracOp.rightFrac; right = null; }
+  }
+  if (!op) { const chosen = pickOuterOp(innerSum); op = chosen.op; right = chosen.right; }
+  return [{ type: 'group_mul', bracket: '(',
+    innerTiles: [
+      { type: 'simple', value: simple },
+      { type: 'mul', op: '×', left: mulLeft, right: mulRight }
+    ], op, right, rightFrac }];
+}
+
+function genParen() {
+  const r = Math.random();
+  // 30%: かっこが右側にくるバリアント
+  if (r < 0.15) return genRightParenPow();
+  if (r < 0.30) return genRightParenSimple();
+  // 70%: 従来の左かっこバリアント
+  if (r < 0.55) return genParenWithPow();
+  if (r < 0.75) return genParenWithMul();
+  return genParenSimple();
+}
+
+// ── 答えが分数になる問題 ────────────────────────────────────
+// target を n 個の非ゼロ整数（絶対値<=9）の和で表せる組み合わせを返す
+function genSumParts(target, n) {
+  for (let tries = 0; tries < 80; tries++) {
+    const parts = [];
+    let rem = target;
+    for (let i = 0; i < n - 1; i++) {
+      let v;
+      // 残りをあとの項で賄えるよう範囲を絞る
+      const lo = Math.max(-9, rem - 9 * (n - 1 - i));
+      const hi = Math.min(9,  rem + 9 * (n - 1 - i));
+      let t2 = 0;
+      do { v = Math.floor(Math.random() * (hi - lo + 1)) + lo; t2++; }
+      while (v === 0 && t2 < 20);
+      if (v === 0) break;
+      parts.push(v);
+      rem -= v;
+    }
+    if (parts.length < n - 1) continue;
+    if (rem === 0 || Math.abs(rem) > 9) continue;
+    parts.push(rem);
+    if (parts.every(v => v !== 0)) return parts;
+  }
+  return null;
+}
+
+// ── 答えが分数：分子 > 1 バリアント（約分あり・なし両対応）────────────────
+function genFracAnswerLargerNum() {
+  const wantYakubun = Math.random() < 0.45; // 45%で乗算後に約分が起こるパターン
+
+  for (let attempt = 0; attempt < 80; attempt++) {
+    const p = randInt(2, 4); // 分数カードの分子 2〜4
+
+    // 分数カード p/q は常に既約（gcd(p,q)=1）
+    const qCands = [];
+    for (let qq = p + 1; qq <= 12; qq++) {
+      if (gcdInt(p, qq) === 1) qCands.push(qq);
+    }
+    if (qCands.length === 0) continue;
+    const q = qCands[Math.floor(Math.random() * qCands.length)];
+
+    // 分数カードを負にするか（40%）
+    const sign    = Math.random() < 0.4 ? -1 : 1;
+    const fracNum = sign * p; // rightFrac.num（既約）
+
+    // かっこ内の和 innerSum
+    // wantYakubun: gcd(innerSum, q) > 1 になる値を選ぶ（乗算後に約分が起きる）
+    // 通常:       gcd(innerSum, q) = 1 の値を選ぶ
+    let innerSum;
+    if (wantYakubun) {
+      const iCands = [];
+      for (let v = -6; v <= 6; v++) {
+        if (v !== 0 && gcdInt(Math.abs(v), q) > 1) iCands.push(v);
+      }
+      if (iCands.length === 0) continue;
+      innerSum = iCands[Math.floor(Math.random() * iCands.length)];
+    } else {
+      innerSum = randNonZero(-6, 6);
+    }
+
+    // 最終答えを計算
+    const rawNum  = innerSum * fracNum;        // 約分前の分子
+    const g       = gcdInt(Math.abs(rawNum), q);
+    const finalNum = rawNum / g;
+    const finalDen = q / g;
+
+    // 整数になるのはNG（答えが分数でなくなる）
+    if (finalDen === 1) continue;
+    // 答えの範囲チェック
+    if (Math.abs(finalNum) > 13 || finalDen > 9) continue;
+
+    // inner タイルを生成（innerSum を n 項に分割）
+    const n = Math.abs(innerSum) >= 3 && Math.random() < 0.4 ? 3 : 2;
+    const parts = genSumParts(innerSum, n);
+    if (!parts) continue;
+
+    // バリアント選択: 通常の innerTiles / 乗算内包 innerTile
+    const useInnerMul = Math.random() < 0.35 && Math.abs(innerSum) >= 2;
+    if (useInnerMul) {
+      // (A×B) × (p/q) — innerSum = mLeft × mRight
+      const mFactors = [];
+      for (let a = -6; a <= 6; a++) {
+        if (Math.abs(a) < 2) continue;
+        for (let b = 2; b <= 6; b++) {
+          if (a * b === innerSum) mFactors.push({ a, b });
+        }
+      }
+      if (mFactors.length === 0) continue;
+      const { a, b } = mFactors[Math.floor(Math.random() * mFactors.length)];
+      return [{
+        type: 'group_mul', bracket: '(',
+        innerTiles: [{ type: 'mul', op: '×', left: a, right: b }],
+        op: '×', rightFrac: { num: fracNum, den: q }
+      }];
+    }
+
+    return [{
+      type: 'group_mul', bracket: '(',
+      innerTiles: parts.map(v => ({ type: 'simple', value: v })),
+      op: '×', rightFrac: { num: fracNum, den: q }
+    }];
+  }
+  return null;
+}
+
+function genFracAnswer() {
+  // 45%で分子 > 1 バリアント（約分あり・なし）を優先
+  if (Math.random() < 0.45) {
+    const result = genFracAnswerLargerNum();
+    if (result) return result;
+  }
+
+  // 既約分数 num/den の候補リスト（真分数・仮分数）
+  const candidates = [];
+  for (let den = 2; den <= 9; den++) {
+    for (let num = 1; num <= den + 4 && num <= 13; num++) {
+      if (num !== den && gcdInt(num, den) === 1) {
+        candidates.push({ num,  den });
+        candidates.push({ num: -num, den });
+      }
+    }
+  }
+
+  const { num, den } = candidates[Math.floor(Math.random() * candidates.length)];
+
+  // 累乗候補（内側タイルとして使える pow）
+  const powOpts = [
+    { val:  4, tile: { type: 'pow', base: 2, exp: 2 } },
+    { val:  8, tile: { type: 'pow', base: 2, exp: 3 } },
+    { val:  9, tile: { type: 'pow', base: 3, exp: 2 } },
+    { val: -4, tile: { type: 'pow', base: 2, exp: 2, negated: true } },
+    { val: -8, tile: { type: 'pow', base: 2, exp: 3, negated: true } },
+    { val: -9, tile: { type: 'pow', base: 3, exp: 2, negated: true } },
+  ];
+
+  // 累乗バリアント A: (pow + B) ÷ den  ← かっこ内の和 = num
+  function tryGroupMulWithPow() {
+    const shuffled = [...powOpts].sort(() => Math.random() - 0.5);
+    for (const pw of shuffled) {
+      const remaining = num - pw.val;
+      if (remaining === 0 || Math.abs(remaining) > 9) continue;
+      const innerTiles = Math.random() < 0.5
+        ? [{ ...pw.tile }, { type: 'simple', value: remaining }]
+        : [{ type: 'simple', value: remaining }, { ...pw.tile }];
+      return [{ type: 'group_mul', bracket: '(', innerTiles, op: '÷', right: den }];
+    }
+    return null;
+  }
+
+  // 累乗バリアント A2: (pow + B) × (±1/den)  ← かっこ内の和 = ±num
+  function tryGroupMulFracWithPow() {
+    const shuffled = [...powOpts].sort(() => Math.random() - 0.5);
+    const useNeg = Math.random() < 0.4;
+    const innerTarget = useNeg ? -num : num;
+    for (const pw of shuffled) {
+      const remaining = innerTarget - pw.val;
+      if (remaining === 0 || Math.abs(remaining) > 9) continue;
+      const innerTiles = Math.random() < 0.5
+        ? [{ ...pw.tile }, { type: 'simple', value: remaining }]
+        : [{ type: 'simple', value: remaining }, { ...pw.tile }];
+      return [{ type: 'group_mul', bracket: '(', innerTiles,
+        op: '×', rightFrac: { num: useNeg ? -1 : 1, den } }];
+    }
+    return null;
+  }
+
+  // 累乗バリアント B: num ÷ (pow + B)  ← かっこ内の和 = den
+  function tryGroupRightWithPow() {
+    const shuffled = [...powOpts].sort(() => Math.random() - 0.5);
+    for (const pw of shuffled) {
+      const remaining = den - pw.val;
+      if (remaining === 0 || Math.abs(remaining) > 9) continue;
+      const innerTiles = Math.random() < 0.5
+        ? [{ ...pw.tile }, { type: 'simple', value: remaining }]
+        : [{ type: 'simple', value: remaining }, { ...pw.tile }];
+      return [{ type: 'group_right', bracket: '(', left: num, op: '÷', innerTiles }];
+    }
+    return null;
+  }
+
+  // バリアント A: (A + B [+ C]) ÷ den  ← かっこ内の和 = num
+  function tryGroupMul() {
+    const n = Math.abs(num) >= 3 && Math.random() < 0.4 ? 3 : 2;
+    const parts = genSumParts(num, n);
+    if (!parts) return null;
+    return [{
+      type: 'group_mul', bracket: '(',
+      innerTiles: parts.map(v => ({ type: 'simple', value: v })),
+      op: '÷', right: den
+    }];
+  }
+
+  // バリアント B: num ÷ (A + B [+ C])  ← かっこ内の和 = den
+  function tryGroupRight() {
+    const n = den >= 3 && Math.random() < 0.4 ? 3 : 2;
+    const parts = genSumParts(den, n);
+    if (!parts) return null;
+    return [{
+      type: 'group_right', bracket: '(',
+      left: num, op: '÷',
+      innerTiles: parts.map(v => ({ type: 'simple', value: v }))
+    }];
+  }
+
+  // ── 2項バリアント ─────────────────────────────────────────
+  // ÷分数バリアント: left ÷ (p/q) → ÷を押すと × 逆数に変換 → 答え num/den
+  // 正の分数版: sign(num) ÷ (den/|num|)  →  sign(num) × |num|/den  = num/den
+  // 負の分数版: 1 ÷ (-den/|num|)         →  1 × (-|num|/den)       = num/den  (num<0 限定)
+  function tryDivFrac() {
+    const absNum = Math.abs(num);
+    if (absNum === 1) return null; // den/1 は分数カードにならない
+    const useNegFrac = num < 0 && Math.random() < 0.5;
+    const left    = useNegFrac ? 1 : Math.sign(num);
+    const fracNum = useNegFrac ? -den : den;
+    const fracDen = absNum;
+    return [{ type: 'mul', op: '÷', left, right: null, rightFrac: { num: fracNum, den: fracDen } }];
+  }
+
+  // 分数カードバリアント: (A+B) × (±1/den)  ← 答えは num/den
+  // 負の場合: かっこ内の和 = -num、× (-1/den) で答えは num/den
+  function tryGroupMulFrac() {
+    const useNeg = Math.random() < 0.5; // 50%で負の分数カード
+    const innerTarget = useNeg ? -num : num;
+    const n = Math.abs(innerTarget) >= 3 && Math.random() < 0.4 ? 3 : 2;
+    const parts = genSumParts(innerTarget, n);
+    if (!parts) return null;
+    return [{
+      type: 'group_mul', bracket: '(',
+      innerTiles: parts.map(v => ({ type: 'simple', value: v })),
+      op: '×', rightFrac: { num: useNeg ? -1 : 1, den }
+    }];
+  }
+
+  // ── 新バリアント: かっこ内に×÷を含む ─────────────────────────
+  // 2内側タイル: (A×B + C) ÷ den  or  (A×B + C) × (±1/den)
+  function tryGroupMulWithInnerMul() {
+    const useNeg = Math.random() < 0.4;
+    const innerTarget = useNeg ? -num : num;
+    let mLeft, mRight, rest, tries = 0;
+    do {
+      mLeft  = randNonZero(-5, 5);
+      mRight = randInt(2, 6);
+      rest   = innerTarget - mLeft * mRight;
+      tries++;
+    } while ((rest === 0 || Math.abs(rest) > 9) && tries < 60);
+    if (rest === 0 || Math.abs(rest) > 9) return null;
+    const mulTile  = { type: 'mul', op: '×', left: mLeft, right: mRight };
+    const simpTile = { type: 'simple', value: rest };
+    const innerTiles = Math.random() < 0.5 ? [mulTile, simpTile] : [simpTile, mulTile];
+    if (useNeg) {
+      return [{ type: 'group_mul', bracket: '(', innerTiles, op: '×', rightFrac: { num: -1, den } }];
+    }
+    return Math.random() < 0.5
+      ? [{ type: 'group_mul', bracket: '(', innerTiles, op: '÷', right: den }]
+      : [{ type: 'group_mul', bracket: '(', innerTiles, op: '×', rightFrac: { num: 1, den } }];
+  }
+
+  // 2内側タイル: num ÷ (A×B + C)  ← group_right に乗算内包
+  function tryGroupRightWithInnerMul() {
+    let mLeft, mRight, rest, tries = 0;
+    do {
+      mLeft  = randNonZero(-5, 5);
+      mRight = randInt(2, 6);
+      rest   = den - mLeft * mRight;
+      tries++;
+    } while ((rest === 0 || Math.abs(rest) > 9) && tries < 60);
+    if (rest === 0 || Math.abs(rest) > 9) return null;
+    const mulTile  = { type: 'mul', op: '×', left: mLeft, right: mRight };
+    const simpTile = { type: 'simple', value: rest };
+    const innerTiles = Math.random() < 0.5 ? [mulTile, simpTile] : [simpTile, mulTile];
+    return [{ type: 'group_right', bracket: '(', left: num, op: '÷', innerTiles }];
+  }
+
+  // 1内側タイル: (A×B) ÷ den  or  (A×B) × (±1/den)
+  function tryGroupMulSingleInnerMul() {
+    const useNeg = Math.random() < 0.4;
+    const innerTarget = useNeg ? -num : num;
+    const factors = [];
+    for (let a = -9; a <= 9; a++) {
+      if (Math.abs(a) < 2) continue;
+      for (let b = 2; b <= 9; b++) {
+        if (a * b === innerTarget) factors.push({ a, b });
+      }
+    }
+    if (factors.length === 0) return null;
+    const { a, b } = factors[Math.floor(Math.random() * factors.length)];
+    const innerTiles = [{ type: 'mul', op: '×', left: a, right: b }];
+    if (useNeg) {
+      return [{ type: 'group_mul', bracket: '(', innerTiles, op: '×', rightFrac: { num: -1, den } }];
+    }
+    return Math.random() < 0.5
+      ? [{ type: 'group_mul', bracket: '(', innerTiles, op: '÷', right: den }]
+      : [{ type: 'group_mul', bracket: '(', innerTiles, op: '×', rightFrac: { num: 1, den } }];
+  }
+
+  // 1内側タイル: (A÷B) ÷ den  or  (A÷B) × (±1/den)
+  function tryGroupMulSingleInnerDiv() {
+    const useNeg = Math.random() < 0.4;
+    const innerTarget = useNeg ? -num : num;
+    const pairs = [];
+    for (let b = 2; b <= 7; b++) {
+      const a = innerTarget * b;
+      if (a !== 0 && Math.abs(a) <= 36) pairs.push({ a, b });
+    }
+    if (pairs.length === 0) return null;
+    const { a, b } = pairs[Math.floor(Math.random() * pairs.length)];
+    const innerTiles = [{ type: 'mul', op: '÷', left: a, right: b }];
+    if (useNeg) {
+      return [{ type: 'group_mul', bracket: '(', innerTiles, op: '×', rightFrac: { num: -1, den } }];
+    }
+    return Math.random() < 0.5
+      ? [{ type: 'group_mul', bracket: '(', innerTiles, op: '÷', right: den }]
+      : [{ type: 'group_mul', bracket: '(', innerTiles, op: '×', rightFrac: { num: 1, den } }];
+  }
+
+  // 30% で累乗バリアントを優先
+  if (Math.random() < 0.30) {
+    const powFns = [tryGroupMulWithPow, tryGroupRightWithPow, tryGroupMulFracWithPow]
+      .sort(() => Math.random() - 0.5);
+    for (const fn of powFns) {
+      const result = fn();
+      if (result) return result;
+    }
+  }
+
+  // 残り70%を7種類のバリアントでシャッフル
+  // ※ かっこ内の計算を含む・分数はかっこの外・カード4枚以内、の条件を満たすもののみ
+  const variants = [
+    tryGroupMulFrac,              // (A+B)×(±1/den)
+    tryGroupMul,                  // (A+B[+C])÷den
+    tryGroupRight,                // num÷(A+B[+C])
+    tryGroupMulWithInnerMul,      // (A×B+C)÷den or ×(±1/den)
+    tryGroupRightWithInnerMul,    // num÷(A×B+C)
+    tryGroupMulSingleInnerMul,    // (A×B)÷den or ×(±1/den)
+    tryGroupMulSingleInnerDiv,    // (A÷B)÷den or ×(±1/den)
+  ].sort(() => Math.random() - 0.5);
+
+  for (const fn of variants) {
+    const result = fn();
+    if (result) return result;
+  }
+
+  // フォールバック
+  return tryGroupMul() || [{
+    // 万一どちらも失敗したら最低限 2 タイル（group_mul で 2 枚内側）
+    type: 'group_mul', bracket: '(',
+    innerTiles: [{ type: 'simple', value: 1 }, { type: 'simple', value: num - 1 || 1 }],
+    op: '÷', right: den
+  }];
+}
+
+/* ---- 問題種別ラベル更新 ---- */
+const GAME_TYPE_LABELS = {
+  'addsub':     '＋−のみ',
+  'muldiv':     '×÷含む',
+  'pow':        '累乗含む',
+  'frac':       '分数含む',
+  'paren':      'かっこ含む',
+  'frac-answer':'答えが分数',
+};
+function updateGameTypeLabel(type) {
+  const el = document.getElementById('game-type-label');
+  if (!el) return;
+  el.textContent = type ? (GAME_TYPE_LABELS[type] || '完全ランダム') : '完全ランダム';
+}
+
+/* ---- パネル表示/非表示トグル ---- */
+function togglePanel() {
+  const area = document.getElementById('game-area');
+  const btn  = document.getElementById('panel-toggle-btn');
+  const hide = area.classList.toggle('panel-hidden');
+  btn.textContent = hide ? '表示' : '非表示';
+}
+
+function showPanel() {
+  const area = document.getElementById('game-area');
+  const btn  = document.getElementById('panel-toggle-btn');
+  area.classList.remove('panel-hidden');
+  btn.textContent = '非表示';
+}
+
+/* ---- 問題の最終答えを計算（答え範囲チェック用） ---- */
+function computeInnerValue(innerTiles) {
+  let s = 0;
+  for (const t of innerTiles) {
+    if (t.type === 'simple') {
+      s += t.value;
+    } else if (t.type === 'pow') {
+      const raw = t.negated ? -Math.pow(t.base, t.exp) : Math.pow(t.base, t.exp);
+      s += (t.base < 0 && t.op === '-') ? -raw : raw;
+    } else if (t.type === 'mul') {
+      s += t.op === '÷' ? t.left / t.right : t.left * t.right;
+    }
+  }
+  return s;
+}
+
+function computeTermsValue(terms) {
+  let sum = 0;
+  let i = 0;
+  while (i < terms.length) {
+    const t = terms[i];
+    if (t.type === 'sign') {
+      // sign タイルは次の simple タイルと対になる: -(+5) → -5, -(-3) → 3
+      const next = terms[i + 1];
+      if (next && next.type === 'simple') {
+        sum += t.op === '-' ? -next.value : next.value;
+        i += 2; continue;
+      }
+      i++; continue;
+    }
+    if (t.type === 'simple') {
+      sum += t.value;
+    } else if (t.type === 'mul') {
+      if (t.rightFrac != null) {
+        const fv = t.rightFrac.num / t.rightFrac.den;
+        sum += t.op === '÷' ? t.left / fv : t.left * fv;
+      } else if (t.rightPow != null) {
+        const rp = t.rightPow;
+        const pv = rp.negated ? -Math.pow(rp.base, rp.exp) : Math.pow(rp.base, rp.exp);
+        sum += t.op === '÷' ? t.left / pv : t.left * pv;
+      } else {
+        sum += t.op === '÷' ? t.left / t.right : t.left * t.right;
+      }
+    } else if (t.type === 'pow') {
+      const raw = t.negated ? -Math.pow(t.base, t.exp) : Math.pow(t.base, t.exp);
+      sum += (t.base < 0 && t.op === '-') ? -raw : raw;
+    } else if (t.type === 'frac') {
+      sum += t.num / t.den;
+    } else if (t.type === 'group_mul') {
+      const iv = computeInnerValue(t.innerTiles);
+      if (t.rightFrac != null) {
+        const fv = t.rightFrac.num / t.rightFrac.den;
+        sum += t.op === '÷' ? iv / fv : iv * fv;
+      } else {
+        sum += t.op === '÷' ? iv / t.right : iv * t.right;
+      }
+    } else if (t.type === 'group_right') {
+      const iv = computeInnerValue(t.innerTiles);
+      sum += t.op === '÷' ? t.left / iv : t.left * iv;
+    }
+    i++;
+  }
+  return sum;
+}
+
+/* ---- 答えが ±100 以内になるまでリトライして terms を返す ---- */
+function genWithLimit(genFn, maxTries = 40) {
+  for (let i = 0; i < maxTries; i++) {
+    const terms = genFn();
+    if (Math.abs(computeTermsValue(terms)) <= 100) return terms;
+  }
+  // maxTries 回試してもダメなら最後の結果をそのまま使う
+  return genFn();
+}
+
+function generateAndStart(type) {
+  lastGameType = type || null;
+
+  if (type === 'paren') {
+    startGameFromTerms(genWithLimit(genParen));
+    return;
+  }
+  if (type === 'frac-answer') {
+    startGameFromTerms(genFracAnswer()); // 答えは常に小数分数、範囲外なし
+    return;
+  }
+  if (type === 'pow') {
+    startGameFromTerms(genWithLimit(genPow));
+    return;
+  }
+  if (type === 'muldiv') {
+    startGameFromTerms(genWithLimit(genMulDiv));
+    return;
+  }
+
+  let expr;
+  if (type === 'addsub') {
+    expr = genAddSub(); // max ±36、範囲外なし
+  } else if (type === 'frac') {
+    expr = genFrac(); // max ±40、範囲外なし
+  } else {
+    // 完全ランダム
+    const r = Math.random();
+    if (r < 0.15) {
+      expr = genAddSub();
+    } else if (r < 0.30) {
+      startGameFromTerms(genWithLimit(genMulDiv)); return;
+    } else if (r < 0.45) {
+      startGameFromTerms(genWithLimit(genPow)); return;
+    } else if (r < 0.60) {
+      expr = genFrac();
+    } else if (r < 0.80) {
+      startGameFromTerms(genWithLimit(genParen)); return;
+    } else {
+      startGameFromTerms(genFracAnswer()); return;
+    }
+  }
   document.getElementById('expr-input').value = expr;
   startGame();
 }
 
 /* ---- Init ---- */
 startGame();
+
+/* ---- Service Worker 登録（PWA オフライン対応） ---- */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
 </script>
 </body>
 </html>
