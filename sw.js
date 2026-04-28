@@ -1,4 +1,4 @@
-const CACHE_NAME = 'shisoku-master-v26';
+const CACHE_NAME = 'shisoku-master-v27';
 const ASSETS = [
   './seifunosuu-game.html',
   './icon.svg',
