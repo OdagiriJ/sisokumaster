@@ -246,13 +246,29 @@
     }
     .panel-wrap:has(.panel-hidden) .hint-bar { display: none; }
 
+    /* パネル内ヒント2行 */
+    .panel-hints {
+      padding: 6px 16px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .panel-hints p {
+      margin: 0;
+      color: var(--subtle);
+      font-size: 0.78em;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .panel-wrap:has(.panel-hidden) .panel-hints { display: none; }
+
     /* パネル下フッター行（undoボタンのみ） */
     .panel-footer {
       display: flex;
       align-items: center;
       justify-content: flex-end;
       padding: 6px 10px;
-      min-height: 44px;
+      min-height: 40px;
     }
     .panel-wrap:has(.panel-hidden) .panel-footer { display: none; }
 
@@ -884,12 +900,14 @@
     <button class="panel-toggle-btn" id="panel-toggle-btn" onclick="togglePanel()">非表示</button>
     <div class="hint-bar" id="hint-bar"></div>
     <div class="game-area" id="game-area"></div>
+    <div class="panel-hints">
+      <p>カードをドラッグし、別のカード上でドロップ → 2項が足し合わされます</p>
+      <p>演算記号や指数を押す → その部分が計算されます</p>
+    </div>
     <div class="panel-footer">
       <button class="btn-undo" id="undo-btn" onclick="undoStep()" disabled>↩ １つ前に戻る</button>
     </div>
   </div>
-  <p class="hint">カードをドラッグして、別のカードの上でドロップ → 2項が足し合わされます</p>
-  <p class="hint">演算記号や指数を押すと、その部分の計算がされます</p>
   <p class="remaining" id="remaining"></p>
 
   <div class="panel">
