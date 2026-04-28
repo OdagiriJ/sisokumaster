@@ -624,25 +624,17 @@
       border-radius: 10px;
       font-size: 0.88em;
       font-weight: 700;
-      white-space: nowrap;
+      white-space: normal;
+      max-width: calc(100vw - 32px);
+      text-align: center;
       pointer-events: none;
       box-shadow: 0 6px 24px rgba(0,0,0,0.5);
       animation: tooltip-in 0.18s ease;
     }
 
     @keyframes tooltip-in {
-      from { transform: translateY(6px); opacity: 0; }
+      from { transform: translateY(4px); opacity: 0; }
       to   { transform: translateY(0); opacity: 1; }
-    }
-
-    .tooltip-bubble::after {
-      content: '';
-      position: absolute;
-      bottom: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      border: 6px solid transparent;
-      border-bottom-color: #fbbf24;
     }
 
     /* Shake animation */
@@ -2390,14 +2382,19 @@ function showTooltip(anchorEl, message) {
   tip.textContent = message;
   document.body.appendChild(tip);
 
-  // ゲームエリアの下端に固定表示（position:fixed なので viewport 座標をそのまま使う）
-  const gameArea = document.getElementById('game-area');
-  const gr  = gameArea ? gameArea.getBoundingClientRect() : anchorEl.getBoundingClientRect();
+  // panel-wrap の下端付近（「１つ前に戻る」ボタンと同じ高さ）に固定表示
+  const panelWrap = document.querySelector('.panel-wrap');
+  const pr = panelWrap ? panelWrap.getBoundingClientRect() : anchorEl.getBoundingClientRect();
   const tipW = tip.offsetWidth;
+  const tipH = tip.offsetHeight;
 
-  let left = gr.left + gr.width / 2 - tipW / 2;
-  let top  = gr.bottom + 10;   // scrollY 不要（fixed 要素はビューポート基準）
-  left = Math.max(8, Math.min(left, window.innerWidth - tipW - 8));
+  // 水平：panel-wrap 中央
+  let left = pr.left + pr.width / 2 - tipW / 2;
+  left = Math.max(pr.left + 8, Math.min(left, pr.right - tipW - 8));
+
+  // 垂直：panel-wrap の下端から tipH + 14px 上（undo ボタンと重ならない余白）
+  const top = pr.bottom - tipH - 14;
+
   tip.style.left = left + 'px';
   tip.style.top  = top  + 'px';
 
