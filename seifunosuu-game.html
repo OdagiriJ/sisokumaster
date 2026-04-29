@@ -4337,11 +4337,20 @@ function generateAndStart(type) {
 document.getElementById('game-area').addEventListener('pointerdown', function(e) {
   // pow-exp-btn（指数バッジ）は自前の stopPropagation があるのでここには来ない
 
-  // 演算子ボタン（×÷）をタップしたときだけ計算を実行
+  // ① 演算子ボタン（×÷）をタップ → 計算実行
   const conn = e.target.closest('.mul-connector-btn');
   if (conn) {
     e.preventDefault();
     executeMulComputation(parseInt(conn.dataset.mulid), conn);
+    return;
+  }
+
+  // ② 左右カードをタップ → ヒントを表示
+  const sub = e.target.closest('.tile.mul-sub[data-mulid]');
+  if (sub) {
+    e.preventDefault();
+    shakeEl(sub);
+    showTooltip(sub, '⚡ 「×÷」を押して計算しよう');
     return;
   }
 }, { passive: false });
